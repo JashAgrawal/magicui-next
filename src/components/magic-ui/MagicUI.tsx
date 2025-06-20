@@ -4,11 +4,11 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useMagicUIContext } from '@/contexts/MagicUIContext';
 import { useMagicUIActions, useModule } from '@/nLib/magic-ui-store';
-import { magicUIService } from '@/nLib/magic-ui-service';
+// import { magicUIService } from '@/nLib/magic-ui-service'; // Removed
 import { MagicUIErrorBoundary } from './MagicUIErrorBoundary';
 import { RegenerateButton } from './RegenerateButton';
 import { LoadingOverlay } from './LoadingSpinner';
-import type { MagicUIProps, UIGenerationRequest } from '@/types/magic-ui';
+import type { MagicUIProps, UIGenerationRequest, UIGenerationResponse } from '@/types/magic-ui';
 
 export function MagicUI({
   id,
@@ -30,88 +30,94 @@ export function MagicUI({
   const [generatedComponent, setGeneratedComponent] = useState<React.ComponentType<{ data: any; className?: string }> | null>(null);
   const [componentError, setComponentError] = useState<string | null>(null);
   
-  // Track if we have all required data
-  const hasRequiredData = isInitialized && geminiClient;
+  // Track if we have all required data for client-side operations (theme, prd)
+  // geminiClient is no longer directly used here for generation.
+  const hasRequiredClientData = isInitialized;
   
   // Generate or load UI component
   const generateUI = React.useCallback(async (forceRegenerate = false) => {
-    if (!isInitialized || !geminiClient) {
-      console.error('MagicUI not properly initialized');
+    if (!isInitialized) { // Check for context initialization
+      console.error('MagicUI context not properly initialized');
       return;
     }
 
+    actions.updateModuleState(moduleName, {
+      isGenerating: true,
+      error: null,
+      lastGenerated: new Date(),
+    });
+    setComponentError(null);
+
+    const request: UIGenerationRequest = {
+      id,
+      moduleName,
+      description,
+      data, // Data is still passed for AI context during initial generation
+      projectPrd: projectPrd || '',
+      theme: theme || {},
+      versionNumber: forceRegenerate ? undefined : versionNumber,
+      forceRegenerate: forceRegenerate, // Pass the flag to the API
+    };
+
+    let result: UIGenerationResponse & { source?: string };
+
     try {
-      // Update module state to indicate generation is in progress
-      actions.updateModuleState(moduleName, {
-        isGenerating: true,
-        error: null,
-        lastGenerated: new Date()
+      const apiResponse = await fetch('/api/generate-magic-ui', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request), // forceRegenerate is part of the request object
       });
 
-      setComponentError(null);
-
-      const request: UIGenerationRequest = {
-        id,
-        moduleName,
-        description,
-        data, // Data is still passed for AI context during initial generation
-        projectPrd: projectPrd || '',
-        theme: theme || {},
-        versionNumber: forceRegenerate ? undefined : versionNumber,
-        forceRegenerate: forceRegenerate ? true : false,
-      };
-
-      const result = await magicUIService.generateUI(request);
-
-      if (result.success && result.code) {
-        // Create the component from generated code
-        const component = createComponentFromCode(result.code, moduleName);
-        setGeneratedComponent(() => component);
-        
-        // Update module state with success
-        actions.updateModuleState(moduleName, { 
-          isGenerating: false,
-          currentVersion: result.version || '1.0.0',
-          lastGenerated: new Date()
-        });
-        
-        // Add log entry
-        actions.addLog(moduleName, {
-          type: 'info',
-          message: `Successfully generated UI component (v${result.version || '1.0.0'})`,
-          data: JSON.stringify({ version: result.version })
-        });
-      } else {
-        throw new Error(result.error || 'Failed to generate UI');
+      if (!apiResponse.ok) {
+        const errorResult = await apiResponse.json().catch(() => ({ error: `API request failed with status ${apiResponse.status}` }));
+        throw new Error(errorResult.error || `API request failed with status ${apiResponse.status}`);
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setComponentError(errorMessage);
       
-      // Update module state with error
-      actions.updateModuleState(moduleName, { 
+      result = await apiResponse.json();
+
+    } catch (e: any) {
+      result = { success: false, error: e.message || 'API call failed', version: request.versionNumber };
+    }
+
+    if (result.success && result.code) {
+      const component = createComponentFromCode(result.code, moduleName);
+      setGeneratedComponent(() => component);
+      actions.updateModuleState(moduleName, {
         isGenerating: false,
-        error: errorMessage
+        currentVersion: result.version || '1.0.0',
+        lastGenerated: new Date(),
       });
-      
-      // Add error log
+      actions.addLog(moduleName, {
+        type: 'info',
+        message: `Successfully fetched UI component (v${result.version || '1.0.0'}) from ${result.source || 'unknown'}`,
+        data: JSON.stringify({ version: result.version, source: result.source }),
+      });
+    } else {
+      const errorMessage = result.error || 'Failed to generate UI via API';
+      setComponentError(errorMessage);
+      actions.updateModuleState(moduleName, {
+        isGenerating: false,
+        error: errorMessage,
+      });
       actions.addLog(moduleName, {
         type: 'error',
-        message: 'Failed to generate UI component',
-        data: JSON.stringify({ error: errorMessage })
+        message: 'Failed to fetch UI component via API',
+        data: JSON.stringify({ error: errorMessage }),
       });
     }
   }, [
     id,
-    isInitialized,
+    isInitialized, // Still needed to gate the function
     moduleName,
     description,
-    // data, // Removed data from dependency array
+    data, // data is part of the request for initial generation context
     projectPrd,
     theme,
     versionNumber,
     actions,
-    geminiClient
+    // geminiClient, // Removed as AI interaction is now via API
   ]);
 
   // Handle regeneration
@@ -121,13 +127,13 @@ export function MagicUI({
 
   // Initial generation
   useEffect(() => {
-    if (hasRequiredData) {
+    if (hasRequiredClientData) { // Use the renamed variable
       generateUI(false);
     }
-  }, [hasRequiredData, generateUI, id]);
+  }, [hasRequiredClientData, generateUI, id]);
 
   // Loading state
-  if (!isInitialized || !hasRequiredData) {
+  if (!hasRequiredClientData) { // Use the renamed variable
     return (
       <div className={cn('p-4 border border-gray-200 rounded-lg bg-gray-50', className)}>
         <p className="text-gray-600 text-center">Initializing MagicUI...</p>

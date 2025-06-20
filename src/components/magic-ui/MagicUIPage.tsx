@@ -3,21 +3,22 @@ import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMagicUIContext } from '@/contexts/MagicUIContext';
 import { useMagicUIActions, useModule } from '@/nLib/magic-ui-store';
-import { magicUIService } from '@/nLib/magic-ui-service';
+// import { magicUIService } from '@/nLib/magic-ui-service'; // Removed
 import { MagicUIErrorBoundary } from './MagicUIErrorBoundary';
 import { RegenerateButton } from './RegenerateButton';
 import { LoadingOverlay } from './LoadingSpinner';
-import type { MagicUIProps, UIGenerationRequest } from '@/types/magic-ui';
+import type { MagicUIProps, UIGenerationRequest, UIGenerationResponse } from '@/types/magic-ui';
 
 export function MagicUIPage({ 
-  id,
   moduleName, 
   description, 
   data, 
   versionNumber,
-  className 
-}: MagicUIProps & { id?: string }) {
-  const { theme, projectPrd, isInitialized, geminiClient } = useMagicUIContext();
+  className,
+  // id prop is part of MagicUIProps but might not be used as explicitly for full pages if moduleName is the primary key
+  id
+}: MagicUIProps) {
+  const { theme, projectPrd, isInitialized } = useMagicUIContext(); // Removed geminiClient
   const {
     isGenerating,
     error: moduleError,
@@ -28,67 +29,79 @@ export function MagicUIPage({
   const [generatedComponent, setGeneratedComponent] = useState<React.ComponentType<{ data: any; className?: string }> | null>(null);
   const [componentError, setComponentError] = useState<string | null>(null);
   
-  const hasRequiredData = isInitialized && geminiClient;
+  // geminiClient is no longer directly used here for generation.
+  const hasRequiredClientData = isInitialized;
   
   const generateUI = React.useCallback(async (forceRegenerate = false) => {
-    if (!isInitialized || !geminiClient) {
-      console.error('MagicUIPage not properly initialized');
+    if (!isInitialized) { // Check for context initialization
+      console.error('MagicUIPage context not properly initialized');
       return;
     }
 
+    actions.updateModuleState(moduleName, {
+      isGenerating: true,
+      error: null,
+      lastGenerated: new Date()
+    });
+    setComponentError(null);
+
+    const request: UIGenerationRequest = {
+      id, // Pass id, even if moduleName is primary for pages, for consistency
+      moduleName,
+      description,
+      data,
+      projectPrd: projectPrd || '',
+      theme: theme || {},
+      versionNumber: forceRegenerate ? undefined : versionNumber,
+      isFullPage: true,
+      forceRegenerate: forceRegenerate,
+    };
+
+    let result: UIGenerationResponse & { source?: string };
+
     try {
+      const apiResponse = await fetch('/api/generate-magic-ui', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!apiResponse.ok) {
+        const errorResult = await apiResponse.json().catch(() => ({ error: `API request failed with status ${apiResponse.status}` }));
+        throw new Error(errorResult.error || `API request failed with status ${apiResponse.status}`);
+      }
+
+      result = await apiResponse.json();
+
+    } catch (e: any) {
+      result = { success: false, error: e.message || 'API call failed', version: request.versionNumber };
+    }
+
+    if (result.success && result.code) {
+      const component = createComponentFromCode(result.code, moduleName);
+      setGeneratedComponent(() => component);
       actions.updateModuleState(moduleName, { 
-        isGenerating: true,
-        error: null,
+        isGenerating: false,
+        currentVersion: result.version || '1.0.0',
         lastGenerated: new Date()
       });
-      
-      setComponentError(null);
-
-      const request: UIGenerationRequest = {
-        id,
-        moduleName,
-        description,
-        data,
-        projectPrd: projectPrd || '',
-        theme: theme || {},
-        versionNumber: forceRegenerate ? undefined : versionNumber,
-        isFullPage: true,
-        forceRegenerate: forceRegenerate ? true : false,
-      };
-
-      const result = await magicUIService.generateUI(request);
-
-      if (result.success && result.code) {
-        const component = createComponentFromCode(result.code, moduleName);
-        setGeneratedComponent(() => component);
-        
-        actions.updateModuleState(moduleName, { 
-          isGenerating: false,
-          currentVersion: result.version || '1.0.0',
-          lastGenerated: new Date()
-        });
-        
-        actions.addLog(moduleName, {
-          type: 'info',
-          message: `Successfully generated full page UI (v${result.version || '1.0.0'})`,
-          data: JSON.stringify({ version: result.version })
-        });
-      } else {
-        throw new Error(result.error || 'Failed to generate full page UI');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      actions.addLog(moduleName, {
+        type: 'info',
+        message: `Successfully fetched full page UI (v${result.version || '1.0.0'}) from ${result.source || 'unknown'}`,
+        data: JSON.stringify({ version: result.version, source: result.source })
+      });
+    } else {
+      const errorMessage = result.error || 'Failed to generate full page UI via API';
       setComponentError(errorMessage);
-      
       actions.updateModuleState(moduleName, { 
         isGenerating: false,
         error: errorMessage
       });
-      
       actions.addLog(moduleName, {
         type: 'error',
-        message: 'Failed to generate full page UI',
+        message: 'Failed to fetch full page UI via API',
         data: JSON.stringify({ error: errorMessage })
       });
     }
@@ -97,11 +110,12 @@ export function MagicUIPage({
     isInitialized, 
     moduleName, 
     description, 
+    data,
     projectPrd, 
     theme, 
     versionNumber,
     actions,
-    geminiClient
+    // geminiClient // Removed
   ]);
 
   const handleRegenerate = React.useCallback(() => {
@@ -109,12 +123,12 @@ export function MagicUIPage({
   }, [generateUI]);
 
   useEffect(() => {
-    if (hasRequiredData) {
+    if (hasRequiredClientData) {
       generateUI(false);
     }
-  }, [hasRequiredData, generateUI]);
+  }, [hasRequiredClientData, generateUI, id]); // Added id to useEffect dependencies like in MagicUI
 
-  if (!isInitialized || !hasRequiredData) {
+  if (!hasRequiredClientData) {
     return (
       <div className={cn('min-h-screen p-4 bg-gray-50', className)}>
         <p className="text-gray-600 text-center">Initializing MagicUIPage...</p>
@@ -163,28 +177,16 @@ export function MagicUIPage({
   );
 }
 
-function createComponentFromCode(templateCode: string, moduleName: string): React.ComponentType<any> {
+function createComponentFromCode(code: string, moduleName: string): React.ComponentType<any> {
   try {
-    return function GeneratedPageComponent({ data: instanceData, className }: any) {
-      let instanceSpecificHtml = templateCode;
-      if (instanceData && typeof instanceData === 'object') {
-        for (const key in instanceData) {
-          if (Object.prototype.hasOwnProperty.call(instanceData, key)) {
-            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-            const value = String(instanceData[key] !== null && instanceData[key] !== undefined ? instanceData[key] : '');
-            instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
-          }
-        }
-      }
-      instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, ''); // Remove unreplaced placeholders
-
+    return function GeneratedPageComponent({ data, className }: any) {
       const iframeContent = `
         <!doctype html>
         <html>
           <head>
-            <meta charset=\"UTF-8\" />
-            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />
-            <script src=\"https://cdn.tailwindcss.com\"></script>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <script src="https://cdn.tailwindcss.com"></script>
             <style>
               body { 
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -194,8 +196,8 @@ function createComponentFromCode(templateCode: string, moduleName: string): Reac
               }
             </style>
           </head>
-          <body class=\"bg-white\">
-            ${instanceSpecificHtml}
+          <body class="bg-white">
+            ${code}
           </body>
         </html>
       `;

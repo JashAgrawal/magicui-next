@@ -1,3 +1,10 @@
+/**
+ * @deprecated This service is deprecated for UI generation.
+ * UI generation is now handled by the server-side API route `/api/generate-magic-ui`.
+ * This file is kept for reference or potential future refactoring for other client-side utilities,
+ * but should not be used for new UI generation logic.
+ */
+/*
 import { v4 as uuidv4 } from "uuid";
 import { Chat, GoogleGenAI } from "@google/genai";
 import { DEFAULT_MAGIC_UI_CONFIG } from "@/types/magic-ui";
@@ -13,7 +20,7 @@ import { ORIGINAL_SYSTEM_INSTRUCTION } from "./geminiUiCreator";
 /**
  * Service responsible for generating UI components using AI
  * Handles caching, versioning, and interaction with the AI model
- */
+ * /
 class MagicUIService {
   private geminiClient: GoogleGenAI | null = null;
   private chatInstance: Chat | null = null;
@@ -28,7 +35,7 @@ class MagicUIService {
 
   /**
    * Initialize the service with required configurations
-   */
+   * /
   async initialize(apiKey: string, config: Partial<MagicUIConfig> = {}): Promise<void> {
     if (!apiKey) {
       throw new Error("API key is required to initialize MagicUIService");
@@ -53,7 +60,7 @@ class MagicUIService {
 
   /**
    * Generate a UI component based on the provided request
-   */
+   * /
   async generateUI(
     request: UIGenerationRequest
   ): Promise<UIGenerationResponse> {
@@ -99,7 +106,7 @@ class MagicUIService {
 
   /**
    * Generate UI code using the Gemini AI model
-   */
+   * /
   private async generateWithAI(
     request: UIGenerationRequest
   ): Promise<UIGenerationResponse> {
@@ -155,7 +162,7 @@ class MagicUIService {
 
   /**
    * Build the prompt for the AI model
-   */
+   * /
   private buildGenerationPrompt(request: UIGenerationRequest): string {
     const { moduleName, description, data, projectPrd, theme, isFullPage } = request;
 
@@ -195,7 +202,7 @@ class MagicUIService {
 
   /**
    * Generate a unique cache key for the request
-   */
+   * /
   private generateCacheKey(request: UIGenerationRequest): string {
     if (request.id && typeof request.id === 'string' && request.id.trim() !== '') {
       // Optionally, could include theme or other structural elements if they can vary per ID.
@@ -258,14 +265,14 @@ class MagicUIService {
 
   /**
    * Save a response to the cache
-   */
+   * /
   private saveToCache(key: string, code: string): void {
     this.setCache(key, code);
   }
 
   /**
    * Clear all cached responses
-   */
+   * /
   clearCache(): void {
     this.cache.clear();
     // Clear any persistent cache if implemented
@@ -276,3 +283,4 @@ class MagicUIService {
 export const magicUIService = new MagicUIService();
 
 export default magicUIService;
+*/

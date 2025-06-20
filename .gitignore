@@ -19,7 +19,6 @@
 
 # production
 /build
-/dist/
 
 # misc
 .DS_Store
@@ -43,3 +42,6 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Cache file for Magic UI generation
+cache.json

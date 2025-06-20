@@ -58,7 +58,7 @@ Your output must follow these standards:
 * ✅ **Flawless Responsiveness**: Pay close attention to responsive design, ensuring the full-page UI adapts flawlessly to various screen sizes.
 * ✅ **Templating for Dynamic Data**: When the UI component needs to display dynamic data values (e.g., product names, prices, user details that will be supplied at runtime), use double curly braces for placeholders. For example:
   - For a product name: \`<h2>{{productName}}</h2>\`
-  - For a price: \`<p>Price: \${{price}}</p>\`
+  - For a price: \`<p>Price: ${{price}}</p>\`
   - For an image source: \`<img src="{{imageUrl}}" alt="{{imageAltText}}" />\`
   - For iterating over a list of items, if you were capable of generating logic (which you are not, just generate the repeating HTML structure for one item with placeholders):
     \`<div><h3>{{itemName}}</h3><p>{{itemDescription}}</p></div>\`

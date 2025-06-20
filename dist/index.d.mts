@@ -17,7 +17,6 @@ interface MagicUIProviderProps {
     apiKey?: string;
 }
 interface MagicUIProps {
-    id?: string;
     moduleName: string;
     description: string;
     data: any;
@@ -25,7 +24,7 @@ interface MagicUIProps {
     className?: string;
 }
 
-declare function MagicUI({ id, moduleName, description, data, versionNumber, className }: MagicUIProps): React$1.JSX.Element;
+declare function MagicUI({ moduleName, description, data, versionNumber, className }: MagicUIProps): React$1.JSX.Element;
 
 /**
  * MagicUIProvider - Main provider component for the MagicUI library
@@ -40,8 +39,6 @@ declare function MagicUI({ id, moduleName, description, data, versionNumber, cla
  */
 declare function MagicUIProvider({ theme, projectPrd, apiKey, children }: MagicUIProviderProps): React$1.JSX.Element;
 
-declare function MagicUIPage({ id, moduleName, description, data, versionNumber, className }: MagicUIProps & {
-    id?: string;
-}): React$1.JSX.Element;
+declare function MagicUIPage({ moduleName, description, data, versionNumber, className }: MagicUIProps): React$1.JSX.Element;
 
 export { MagicUI, MagicUIPage, MagicUIProvider };
