@@ -121,6 +121,14 @@ export default function DynamicMagicUITestPage() {
             </li>
           </ul>
         </footer>
+
+        <MagicUI
+          id="dynamic-magic-ui-test"
+          moduleName="product-card"
+          description="A dynamic product card component."
+          data={testData}
+          versionNumber="1.0.0"
+        />
       </div>
     </MagicUIProvider>
   );

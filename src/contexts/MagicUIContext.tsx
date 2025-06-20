@@ -5,7 +5,6 @@ import { GoogleGenAI } from '@google/genai';
 import { getGeminiConfig, handleGeminiError } from '@/nLib/gemini';
 import type { MagicUIContextType, MagicUITheme } from '@/types/magic-ui';
 import { useMagicUIStore } from '@/nLib/magic-ui-store';
-import { magicUIService } from '@/nLib/magic-ui-service';
 
 const MagicUIContext = createContext<MagicUIContextType | undefined>(undefined);
 
@@ -41,9 +40,6 @@ export function MagicUIProvider({ theme, projectPrd, apiKey, children }: MagicUI
         const client = new GoogleGenAI({
           apiKey: key,
         });
-
-        // Initialize the MagicUI service with the API key
-        magicUIService.initialize(key);
 
         setGeminiClient(client);
         setIsInitialized(true);

@@ -17,7 +17,7 @@ export interface MagicUIProviderProps {
 }
 
 export interface MagicUIProps {
-  id?: string;
+  id: string;
   moduleName: string;
   description: string;
   data: any;

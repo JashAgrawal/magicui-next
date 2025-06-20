@@ -1,60 +1,27 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": false,
+    "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    // "incremental": true,
-    // "plugins": [
-    //   {
-    //     "name": "next"
-    //   }
-    // ],
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    },
-    "outDir": "dist",
-    "declaration": true,
-    "declarationDir": "dist",
-    "emitDeclarationOnly": false,
-    "rootDir": "src",
-    "incremental": true
+      "@/*": ["./src/*"]
+    }
   },
-  "include": [
-    "src/index.ts",
-    "src/components/**/*",
-    "src/contexts/**/*",
-    "src/hooks/**/*",
-    "src/types/**/*",
-    "src/lib/**/*",
-    "src/nLib/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src/app/**/*",
-    "src/examples/**/*",
-    "public",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "eslint.config.mjs",
-    "next.config.ts",
-    "postcss.config.mjs",
-    "tailwind.config.ts",
-    "tsup.config.js"
-  ]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
 }

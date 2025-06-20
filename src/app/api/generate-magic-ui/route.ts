@@ -12,7 +12,7 @@ if (!geminiApiKey) {
   console.error('GEMINI_API_KEY environment variable is not set.');
   // Potentially throw an error or handle this state appropriately for your app's startup
 }
-const genAI = new GoogleGenAI(geminiApiKey || ''); // genAI must be initialized, even if key is missing initially to avoid runtime error on new
+const genAI = new GoogleGenAI({apiKey:geminiApiKey || ''}); // genAI must be initialized, even if key is missing initially to avoid runtime error on new
 
 function generateCacheKey(request: UIGenerationRequest): string {
   // Simplified cache key generation, similar to previous logic
@@ -37,10 +37,10 @@ async function generateWithAI(request: UIGenerationRequest): Promise<Omit<UIGene
     // TODO: Consider if a new chat instance should be created per request or if one can be reused.
     // For safety and to ensure system instruction is fresh, creating per request might be better.
     const chatInstance = genAI.chats.create({
-        model: 'gemini-1.5-flash', // Using gemini-1.5-flash as per consideration
+        model: 'gemini-2.5-flash-lite-preview-06-17', // Using gemini-1.5-flash as per consideration
         config: {
             systemInstruction: ORIGINAL_SYSTEM_INSTRUCTION,
-            temperature: 0.7, // Example: Adjust as needed
+            temperature: 2, // Example: Adjust as needed
             // maxOutputTokens: 2048, // Example: Adjust as needed
         },
     });
@@ -61,6 +61,7 @@ async function generateWithAI(request: UIGenerationRequest): Promise<Omit<UIGene
 
     const result = await chatInstance.sendMessage({ message: [{text: prompt}] });
     const text = result.text;
+
 
     if (!text) {
       throw new Error('AI returned an empty response.');
@@ -102,7 +103,8 @@ export async function POST(request: NextRequest) {
     const key = generateCacheKey(generationRequest);
     const cachedEntry = cache.get(key);
 
-    if (cachedEntry && (Date.now() - cachedEntry.timestamp) < CACHE_TTL) {
+    // Bypass cache if forceRegenerate is true
+    if (!generationRequest.forceRegenerate && cachedEntry && (Date.now() - cachedEntry.timestamp) < CACHE_TTL) {
       // console.log(`Cache hit for key: ${key}`);
       return NextResponse.json({ success: true, code: cachedEntry.code, version: new Date(cachedEntry.timestamp).toISOString(), source: 'cache' });
     }

@@ -10,14 +10,16 @@ import { LoadingOverlay } from './LoadingSpinner';
 import type { MagicUIProps, UIGenerationRequest, UIGenerationResponse } from '@/types/magic-ui';
 
 export function MagicUIPage({ 
+  id,
   moduleName, 
   description, 
   data, 
   versionNumber,
-  className,
-  // id prop is part of MagicUIProps but might not be used as explicitly for full pages if moduleName is the primary key
-  id
+  className
 }: MagicUIProps) {
+  if (!id || typeof id !== 'string' || id.trim() === '') {
+    throw new Error('MagicUIPage: The "id" prop is required and must be a non-empty string.');
+  }
   const { theme, projectPrd, isInitialized } = useMagicUIContext(); // Removed geminiClient
   const {
     isGenerating,
@@ -76,7 +78,7 @@ export function MagicUIPage({
       result = await apiResponse.json();
 
     } catch (e: any) {
-      result = { success: false, error: e.message || 'API call failed', version: request.versionNumber };
+      result = { success: false, error: e.message || 'API call failed', version: request.versionNumber || "1" };
     }
 
     if (result.success && result.code) {

@@ -18,6 +18,10 @@ export function MagicUI({
   versionNumber,
   className
 }: MagicUIProps) {
+  if (!id || typeof id !== 'string' || id.trim() === '') {
+    throw new Error('MagicUI: The "id" prop is required and must be a non-empty string.');
+  }
+
   // All hooks must be called unconditionally at the top level
   const { theme, projectPrd, isInitialized, geminiClient } = useMagicUIContext();
   const {
@@ -78,7 +82,7 @@ export function MagicUI({
       result = await apiResponse.json();
 
     } catch (e: any) {
-      result = { success: false, error: e.message || 'API call failed', version: request.versionNumber };
+      result = { success: false, error: e.message || 'API call failed', version: request.versionNumber || "1" };
     }
 
     if (result.success && result.code) {

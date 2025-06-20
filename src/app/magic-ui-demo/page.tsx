@@ -140,6 +140,7 @@ export default function MagicUIDemoPage() {
                   description="Create a responsive grid of product cards showing product information with {{name}}, {{price}}, {{rating}}, and {{category}}. Images at {{image}} should have fallbacks to https://placehold.co/300x200 if they fail to load."
                   data={productData}
                   className="min-h-[300px]"
+                  id="product-cards"
                 />
               </CardContent>
             </Card>
@@ -158,6 +159,7 @@ export default function MagicUIDemoPage() {
                   description="Create a user profile card displaying user information: {{name}}, {{role}}, {{status}}. The avatar image at {{avatar}} should include a fallback to https://placehold.co/100x100."
                   data={userData}
                   className="min-h-[300px]"
+                  id="user-profile"
                 />
               </CardContent>
             </Card>
@@ -176,6 +178,7 @@ export default function MagicUIDemoPage() {
                   description="Create an analytics dashboard showing key metrics, sales data (e.g. {{totalSales}}), and top products with visual charts and statistics. If any images are used (e.g. for product icons), they should have fallbacks to https://placehold.co/50x50."
                   data={analyticsData}
                   className="min-h-[400px]"
+                  id="analytics-dashboard"
                 />
               </CardContent>
             </Card>
@@ -194,6 +197,7 @@ export default function MagicUIDemoPage() {
                   description="Create a responsive data table for products (showing {{name}}, {{price}}, {{category}}). If product images are included in rows from {{image}}, they must have fallbacks to https://placehold.co/80x80."
                   data={productData}
                   className="min-h-[300px]"
+                  id="product-table"
                 />
               </CardContent>
             </Card>
