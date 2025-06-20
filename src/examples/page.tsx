@@ -26,9 +26,8 @@ const MagicUIPageExample = () => {
     <MagicUIProvider theme={exampleTheme} projectPrd={examplePRD} apiKey={process.env.NEXT_PUBLIC_GEMINI_API_KEY}>
       <MagicUIPage
         moduleName="dashboard-page"
-        description="Show a dashboard page with total sales ({{totalSales}}) and a list of top products. Each product in the list ({{topProducts}}) might have a name ({{name}}), sales ({{sales}}), and an image ({{imageUrl}}). All images, including any main page images like {{heroImage}}, must include fallbacks to https://placehold.co/ (e.g., 600x400 for main, 80x80 for product list items) if the original image fails to load."
+        description="create an awesome dashboard page to display this data"
         data={dashboardData}
-        
       />
     </MagicUIProvider>
   );

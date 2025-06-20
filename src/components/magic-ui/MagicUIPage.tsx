@@ -10,12 +10,13 @@ import { LoadingOverlay } from './LoadingSpinner';
 import type { MagicUIProps, UIGenerationRequest } from '@/types/magic-ui';
 
 export function MagicUIPage({ 
+  id,
   moduleName, 
   description, 
   data, 
   versionNumber,
   className 
-}: MagicUIProps) {
+}: MagicUIProps & { id?: string }) {
   const { theme, projectPrd, isInitialized, geminiClient } = useMagicUIContext();
   const {
     isGenerating,
@@ -45,6 +46,7 @@ export function MagicUIPage({
       setComponentError(null);
 
       const request: UIGenerationRequest = {
+        id,
         moduleName,
         description,
         data,
@@ -91,10 +93,10 @@ export function MagicUIPage({
       });
     }
   }, [
+    id,
     isInitialized, 
     moduleName, 
     description, 
-    data, 
     projectPrd, 
     theme, 
     versionNumber,
@@ -161,16 +163,28 @@ export function MagicUIPage({
   );
 }
 
-function createComponentFromCode(code: string, moduleName: string): React.ComponentType<any> {
+function createComponentFromCode(templateCode: string, moduleName: string): React.ComponentType<any> {
   try {
-    return function GeneratedPageComponent({ data, className }: any) {
+    return function GeneratedPageComponent({ data: instanceData, className }: any) {
+      let instanceSpecificHtml = templateCode;
+      if (instanceData && typeof instanceData === 'object') {
+        for (const key in instanceData) {
+          if (Object.prototype.hasOwnProperty.call(instanceData, key)) {
+            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+            const value = String(instanceData[key] !== null && instanceData[key] !== undefined ? instanceData[key] : '');
+            instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
+          }
+        }
+      }
+      instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, ''); // Remove unreplaced placeholders
+
       const iframeContent = `
         <!doctype html>
         <html>
           <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <script src="https://cdn.tailwindcss.com"></script>
+            <meta charset=\"UTF-8\" />
+            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />
+            <script src=\"https://cdn.tailwindcss.com\"></script>
             <style>
               body { 
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -180,8 +194,8 @@ function createComponentFromCode(code: string, moduleName: string): React.Compon
               }
             </style>
           </head>
-          <body class="bg-white">
-            ${code}
+          <body class=\"bg-white\">
+            ${instanceSpecificHtml}
           </body>
         </html>
       `;

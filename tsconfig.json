@@ -9,7 +9,7 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": false,
+    "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -17,11 +17,11 @@
     "isolatedModules": true,
     "jsx": "preserve",
     // "incremental": true,
-    // "plugins": [
-    //   {
-    //     "name": "next"
-    //   }
-    // ],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": [
         "./src/*"
@@ -32,29 +32,20 @@
     "declarationDir": "dist",
     "emitDeclarationOnly": false,
     "rootDir": "src",
-    "incremental": true
+    "incremental": false
   },
   "include": [
-    "src/index.ts",
-    "src/components/**/*",
-    "src/contexts/**/*",
-    "src/hooks/**/*",
-    "src/types/**/*",
-    "src/lib/**/*",
-    "src/nLib/**/*"
+    "index.ts",
+    "src/components/magic-ui/**/*",
+    "src/contexts/MagicUIContext.tsx",
+    "src/types/magic-ui.ts",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "src/app/**/*",
-    "src/examples/**/*",
+    "src/nLib",
+    "test",
     "public",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "eslint.config.mjs",
-    "next.config.ts",
-    "postcss.config.mjs",
-    "tailwind.config.ts",
-    "tsup.config.js"
+    ".next"
   ]
 }
