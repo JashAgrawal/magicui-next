@@ -84,6 +84,7 @@ export interface RegenerateButtonProps {
   onRegenerate: () => void;
   isGenerating: boolean;
   className?: string;
+  positionStrategy?: 'fixed-to-viewport' | 'absolute-to-container';
 }
 
 export interface MagicUIErrorBoundaryState {

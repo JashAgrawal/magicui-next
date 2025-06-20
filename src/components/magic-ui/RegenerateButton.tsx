@@ -7,11 +7,16 @@ import { cn } from '@/lib/utils';
 import { LoadingSpinner } from './LoadingSpinner';
 import type { RegenerateButtonProps } from '@/types/magic-ui';
 
-export function RegenerateButton({ 
-  onRegenerate, 
-  isGenerating, 
-  className 
+export function RegenerateButton({
+  onRegenerate,
+  isGenerating,
+  className,
+  positionStrategy = 'fixed-to-viewport',
 }: RegenerateButtonProps) {
+  const positionClasses = positionStrategy === 'fixed-to-viewport'
+    ? 'fixed bottom-4 right-4'
+    : 'absolute bottom-2 right-2';
+
   return (
     <Button
       onClick={onRegenerate}
@@ -19,7 +24,8 @@ export function RegenerateButton({
       size="sm"
       variant="outline"
       className={cn(
-        'fixed bottom-4 right-4 z-50 shadow-lg hover:shadow-xl transition-all duration-200',
+        'z-50 shadow-lg hover:shadow-xl transition-all duration-200',
+        positionClasses,
         'bg-white/90 backdrop-blur-sm border-gray-200 hover:bg-white',
         'text-gray-700 hover:text-gray-900',
         isGenerating && 'cursor-not-allowed opacity-75',

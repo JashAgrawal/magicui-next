@@ -153,9 +153,10 @@ export function MagicUI({
           <p className="text-red-800 font-medium">Failed to generate UI component</p>
           <p className="text-red-600 text-sm mt-1">{componentError || moduleError}</p>
         </div>
-        <RegenerateButton 
+        <RegenerateButton
           onRegenerate={handleRegenerate}
           isGenerating={isGenerating}
+          positionStrategy='absolute-to-container'
         />
       </div>
     );
@@ -177,10 +178,11 @@ export function MagicUI({
           )}
         </LoadingOverlay>
       </MagicUIErrorBoundary>
-      
-      <RegenerateButton 
+
+      <RegenerateButton
         onRegenerate={handleRegenerate}
         isGenerating={isGenerating}
+        positionStrategy='absolute-to-container'
       />
     </div>
   );
@@ -193,17 +195,38 @@ function createComponentFromCode(templateCode: string, moduleName: string): Reac
   try {
     // Create a component that renders the generated UI in an iframe
     return function GeneratedComponent({ data: instanceData, className }: any) {
-      let instanceSpecificHtml = templateCode;
-      if (instanceData && typeof instanceData === 'object') {
-        for (const key in instanceData) {
-          if (Object.prototype.hasOwnProperty.call(instanceData, key)) {
-            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-            // Ensure data[key] is a string or can be converted to one.
-            const value = String(instanceData[key] !== null && instanceData[key] !== undefined ? instanceData[key] : '');
-            instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
+      let instanceSpecificHtml = '';
+
+      if (Array.isArray(instanceData)) {
+        let aggregatedHtml = '';
+        for (const item of instanceData) {
+          let itemHtml = templateCode;
+          if (item && typeof item === 'object') {
+            for (const key in item) {
+              if (Object.prototype.hasOwnProperty.call(item, key)) {
+                const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+                const value = String(item[key] !== null && item[key] !== undefined ? item[key] : '');
+                itemHtml = itemHtml.replace(placeholder, value);
+              }
+            }
+          }
+          aggregatedHtml += itemHtml;
+        }
+        instanceSpecificHtml = aggregatedHtml;
+      } else {
+        instanceSpecificHtml = templateCode; // Initialize for non-array case
+        if (instanceData && typeof instanceData === 'object') {
+          for (const key in instanceData) {
+            if (Object.prototype.hasOwnProperty.call(instanceData, key)) {
+              const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+              // Ensure data[key] is a string or can be converted to one.
+              const value = String(instanceData[key] !== null && instanceData[key] !== undefined ? instanceData[key] : '');
+              instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
+            }
           }
         }
       }
+
       // Any placeholders not in instanceData will remain. Consider replacing them with empty strings.
       instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, ''); // Optional: remove unreplaced placeholders
 
