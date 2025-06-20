@@ -13,7 +13,8 @@ const productData = {
   id: 1,
   name: 'Wireless Headphones',
   price: 99.99,
-  image: 'https://placehold.co/300x200',
+  image: 'https://example.com/nonexistent-headphones.jpg', // Failing URL
+  altText: 'Wireless Over-ear Headphones'
 };
 
 const MagicUIComponent = () => {
@@ -22,7 +23,7 @@ const MagicUIComponent = () => {
       <div className="max-w-md mx-auto mt-8">
         <MagicUI
           moduleName="product-card"
-          description="Show a product card with image, name, and price."
+          description="Show a product card with product name ({{name}}) and price (${{price}}). The product image at {{image}} (with alt text {{altText}}) should include a fallback to https://placehold.co/300x200 if the original image fails."
           data={productData}
         />
       </div>

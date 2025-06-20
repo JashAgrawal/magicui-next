@@ -6,15 +6,15 @@ import { MagicUIProvider } from '@/contexts/MagicUIContext'; // Adjust path as n
 
 const initialTestData = [
   { productName: "Laptop Pro X", price: "1499.99", imageUrl: "/placeholder-images/laptop.jpg", imageAltText: "A modern laptop" },
-  { productName: "Wireless Ergo Mouse", price: "79.50", imageUrl: "/placeholder-images/mouse.jpg", imageAltText: "An ergonomic wireless mouse" },
-  { productName: "Mechanical Keyboard RGB", price: "125.00", imageUrl: "/placeholder-images/keyboard.jpg", imageAltText: "A colorful mechanical keyboard" },
+  { productName: "Wireless Ergo Mouse", price: "79.50", imageUrl: "https://example.com/nonexistent-mouse.jpg", imageAltText: "An ergonomic wireless mouse (image will fail)" }, // Failing URL
+  { productName: "Mechanical Keyboard RGB", price: "125.00", imageUrl: "/images/nonexistent-keyboard.png", imageAltText: "A colorful mechanical keyboard (image will fail)" }, // Failing URL
 ];
 
 const updatedTestData = [
   { productName: "Laptop Pro X (Updated)", price: "1450.00", imageUrl: "/placeholder-images/laptop_updated.jpg", imageAltText: "An updated modern laptop" },
-  { productName: "Wireless Ergo Mouse", price: "75.00", imageUrl: "/placeholder-images/mouse.jpg", imageAltText: "An ergonomic wireless mouse" },
+  { productName: "Wireless Ergo Mouse", price: "75.00", imageUrl: "https://example.com/another-nonexistent-mouse.jpg", imageAltText: "An ergonomic wireless mouse (image will fail again)" }, // Failing URL
   { productName: "Mechanical Keyboard RGB", price: "120.00", imageUrl: "/placeholder-images/keyboard.jpg", imageAltText: "A colorful mechanical keyboard" },
-  { productName: "New Gaming Monitor", price: "350.00", imageUrl: "/placeholder-images/monitor.jpg", imageAltText: "A new gaming monitor" },
+  { productName: "New Gaming Monitor", price: "350.00", imageUrl: "/images/nonexistent-monitor.gif", imageAltText: "A new gaming monitor (image will fail)" }, // Failing URL
 ];
 
 // Mock theme and projectPrd for the provider
@@ -85,7 +85,7 @@ export default function DynamicMagicUITestPage() {
                 // and then reuse it for all instances, filling placeholders with the 'data' prop.
                 id="product-card-dynamic"
                 moduleName="ProductCardDynamic"
-                description="A card that displays product information: Name: {{productName}}, Price: ${{price}}. It should also show an image: <img src='{{imageUrl}}' alt='{{imageAltText}}' />. The image should be responsive and well-styled within the card."
+                description="A card that displays product information: Name: {{productName}}, Price: ${{price}}. The image at {{imageUrl}} (alt text: {{imageAltText}}) should have a fallback to https://placehold.co/300x200 if the original image fails to load. Ensure the onerror attribute is correctly implemented for this fallback."
                 // Individual data for this instance
                 data={item}
                 className="w-full"

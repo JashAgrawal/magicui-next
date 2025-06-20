@@ -63,6 +63,7 @@ Your output must follow these standards:
   - For iterating over a list of items, if you were capable of generating logic (which you are not, just generate the repeating HTML structure for one item with placeholders):
     \`<div><h3>{{itemName}}</h3><p>{{itemDescription}}</p></div>\`
   This allows the system to inject actual data into these placeholders when rendering the component for different data instances.
+* ✅ **Image Fallbacks**: For all \`<img>\` tags, you MUST include an \`onerror\` attribute to provide a fallback image from \`https://placehold.co/\`. The JavaScript within \`onerror\` should set \`this.onerror=null;\` to prevent infinite loops if the placeholder itself fails, and then set \`this.src\` to the placeholder URL. Example: \`<img src="{{actualImageUrl}}" onerror="this.onerror=null; this.src='https://placehold.co/600x400';" alt="{{altText}}">\`. You should try to infer sensible WIDTH and HEIGHT values for the placeholder from the context of the image, or default to \`600x400\` or \`300x200\` if the context is unclear. Ensure the alt text remains appropriate.
 
 ---
 
