@@ -1,0 +1,15 @@
+src/
+public/
+test/
+.next/
+node_modules/
+*.ts
+*.tsx
+*.md
+!README.md
+*.config.*
+tsconfig.json
+tsconfig.tsbuildinfo
+package-lock.json
+yarn.lock
+.eslintrc*

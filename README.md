@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# magicui-next
 
-## Getting Started
+A Next.js-ready UI automation toolkit. Easily generate, manage, and use AI-powered UI components in your Next.js apps.
 
-First, run the development server:
+## Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install magicui-next
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+or
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+yarn add magicui-next
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Usage
 
-## Learn More
+### 1. Wrap your app with `MagicUIProvider`
 
-To learn more about Next.js, take a look at the following resources:
+```tsx
+import { MagicUIProvider } from 'magicui-next';
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+export default function App({ children }) {
+  return (
+    <MagicUIProvider theme={/* your theme */} projectPrd={/* your PRD */} apiKey={/* gemini api key */}>
+      {children}
+    </MagicUIProvider>
+  );
+}
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Use `MagicUI` to generate a component
 
-## Deploy on Vercel
+```tsx
+import { MagicUI } from 'magicui-next';
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+export default function MyComponent() {
+  return (
+    <MagicUI
+      moduleName="UserProfile"
+      description="A user profile card with avatar, name, and bio."
+      data={{ name: 'Jane Doe', bio: 'AI enthusiast' }}
+    />
+  );
+}
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 3. Use `MagicUIPage` to generate a full page
+
+```tsx
+import { MagicUIPage } from 'magicui-next';
+
+export default function MyPage() {
+  return (
+    <MagicUIPage
+      moduleName="LandingPage"
+      description="A landing page for a SaaS product."
+      data={{ product: 'MagicUI', features: ['AI', 'Next.js', 'Automation'] }}
+    />
+  );
+}
+```
+
+## License
+
+MIT

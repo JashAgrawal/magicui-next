@@ -1,0 +1,1 @@
+export { MagicUIProvider, MagicUI, MagicUIPage } from './components/magic-ui'; 
