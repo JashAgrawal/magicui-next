@@ -197,10 +197,19 @@ class MagicUIService {
    * Generate a unique cache key for the request
    */
   private generateCacheKey(request: UIGenerationRequest): string {
+    if (request.id && typeof request.id === 'string' && request.id.trim() !== '') {
+      // Optionally, could include theme or other structural elements if they can vary per ID.
+      // For now, ID is the primary key for the structure.
+      return `magicui-id:${request.id}`;
+    }
+    // Fallback to existing detailed cache key if no ID is provided
     const { moduleName, versionNumber, theme, data, projectPrd } = request;
-    const themeString = typeof theme === "string" ? theme : JSON.stringify(theme);
+    const themeString = typeof theme === 'string' ? theme : JSON.stringify(theme);
+    // IMPORTANT: For structural caching by ID, the 'data' part of this fallback key
+    // should ideally represent the 'shape' or 'initial data' used for that first generation.
+    // However, the user request implies 'id' defines the structure, and 'data' is for filling it.
+    // So, if ID is not present, the old behavior (data influencing cache key) is fine.
     const dataString = JSON.stringify(data);
-
     return `${moduleName}:${versionNumber || 'latest'}:${themeString}:${dataString}:${projectPrd}`;
   }
 

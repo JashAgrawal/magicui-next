@@ -305,6 +305,18 @@ Your output must follow these standards:
 * \u2705 **Proper Spacing accross all dimensions**: Ensure proper spacing is applied across all dimensions/breakpoints (margin, padding, gap).
 * \u2705 **Responsive**: Ensure the UI is responsive and works well on all screen sizes.
 * \u2705 **No Output Commentary**: Only return the HTML block\u2014do not explain or describe the code.
+* \u2705 **Comprehensive UI**: Ensure the UI is comprehensive and feels like a complete, well-thought-out page.
+* \u2705 **Clean Layouts**: Avoid partial or 'messy' layouts. Focus on clean, organized, and aesthetically pleasing full-page experiences.
+* \u2705 **Awesome Full Page UI**: The generated UI for \`MagicUIPage\` (when \`isFullPage\` is true) should be 'awesome' - meaning it should be impressive, modern, and highly usable, utilizing the full viewport effectively.
+* \u2705 **Flawless Responsiveness**: Pay close attention to responsive design, ensuring the full-page UI adapts flawlessly to various screen sizes.
+* \u2705 **Templating for Dynamic Data**: When the UI component needs to display dynamic data values (e.g., product names, prices, user details that will be supplied at runtime), use double curly braces for placeholders. For example:
+  - For a product name: \`<h2>{{productName}}</h2>\`
+  - For a price: \`<p>Price: \${{price}}</p>\`
+  - For an image source: \`<img src="{{imageUrl}}" alt="{{imageAltText}}" />\`
+  - For iterating over a list of items, if you were capable of generating logic (which you are not, just generate the repeating HTML structure for one item with placeholders):
+    \`<div><h3>{{itemName}}</h3><p>{{itemDescription}}</p></div>\`
+  This allows the system to inject actual data into these placeholders when rendering the component for different data instances.
+* \u2705 **Image Fallbacks**: For all \`<img>\` tags, you MUST include an \`onerror\` attribute to provide a fallback image from \`https://placehold.co/\`. The JavaScript within \`onerror\` should set \`this.onerror=null;\` to prevent infinite loops if the placeholder itself fails, and then set \`this.src\` to the placeholder URL. Example: \`<img src="{{actualImageUrl}}" onerror="this.onerror=null; this.src='https://placehold.co/600x400';" alt="{{altText}}">\`. You should try to infer sensible WIDTH and HEIGHT values for the placeholder from the context of the image, or default to \`600x400\` or \`300x200\` if the context is unclear. Ensure the alt text remains appropriate.
 
 ---
 
@@ -497,6 +509,9 @@ var MagicUIService = class {
    * Generate a unique cache key for the request
    */
   generateCacheKey(request) {
+    if (request.id && typeof request.id === "string" && request.id.trim() !== "") {
+      return `magicui-id:${request.id}`;
+    }
     const { moduleName, versionNumber, theme, data, projectPrd } = request;
     const themeString = typeof theme === "string" ? theme : JSON.stringify(theme);
     const dataString = JSON.stringify(data);
@@ -822,6 +837,7 @@ function RegenerateButton({
 
 // src/components/magic-ui/MagicUI.tsx
 function MagicUI({
+  id,
   moduleName,
   description,
   data,
@@ -851,9 +867,11 @@ function MagicUI({
       });
       setComponentError(null);
       const request = {
+        id,
         moduleName,
         description,
         data,
+        // Data is still passed for AI context during initial generation
         projectPrd: projectPrd || "",
         theme: theme || {},
         versionNumber: forceRegenerate ? void 0 : versionNumber,
@@ -890,10 +908,11 @@ function MagicUI({
       });
     }
   }, [
+    id,
     isInitialized,
     moduleName,
     description,
-    data,
+    // data, // Removed data from dependency array
     projectPrd,
     theme,
     versionNumber,
@@ -907,7 +926,7 @@ function MagicUI({
     if (hasRequiredData) {
       generateUI(false);
     }
-  }, [hasRequiredData, generateUI]);
+  }, [hasRequiredData, generateUI, id]);
   if (!isInitialized || !hasRequiredData) {
     return /* @__PURE__ */ import_react6.default.createElement("div", { className: cn("p-4 border border-gray-200 rounded-lg bg-gray-50", className) }, /* @__PURE__ */ import_react6.default.createElement("p", { className: "text-gray-600 text-center" }, "Initializing MagicUI..."));
   }
@@ -931,9 +950,20 @@ function MagicUI({
     }
   ));
 }
-function createComponentFromCode(code, moduleName) {
+function createComponentFromCode(templateCode, moduleName) {
   try {
-    return function GeneratedComponent({ data, className }) {
+    return function GeneratedComponent({ data: instanceData, className }) {
+      let instanceSpecificHtml = templateCode;
+      if (instanceData && typeof instanceData === "object") {
+        for (const key in instanceData) {
+          if (Object.prototype.hasOwnProperty.call(instanceData, key)) {
+            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+            const value = String(instanceData[key] !== null && instanceData[key] !== void 0 ? instanceData[key] : "");
+            instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
+          }
+        }
+      }
+      instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, "");
       const iframeContent = `
         <!doctype html>
         <html>
@@ -950,7 +980,7 @@ function createComponentFromCode(code, moduleName) {
             </style>
           </head>
           <body class="bg-white">
-            ${code}
+            ${instanceSpecificHtml}
           </body>
         </html>
       `;
@@ -989,6 +1019,7 @@ var MagicUIProvider_default = MagicUIProvider2;
 // src/components/magic-ui/MagicUIPage.tsx
 var import_react8 = __toESM(require("react"));
 function MagicUIPage({
+  id,
   moduleName,
   description,
   data,
@@ -1018,6 +1049,7 @@ function MagicUIPage({
       });
       setComponentError(null);
       const request = {
+        id,
         moduleName,
         description,
         data,
@@ -1058,10 +1090,10 @@ function MagicUIPage({
       });
     }
   }, [
+    id,
     isInitialized,
     moduleName,
     description,
-    data,
     projectPrd,
     theme,
     versionNumber,
@@ -1099,9 +1131,20 @@ function MagicUIPage({
     }
   ));
 }
-function createComponentFromCode2(code, moduleName) {
+function createComponentFromCode2(templateCode, moduleName) {
   try {
-    return function GeneratedPageComponent({ data, className }) {
+    return function GeneratedPageComponent({ data: instanceData, className }) {
+      let instanceSpecificHtml = templateCode;
+      if (instanceData && typeof instanceData === "object") {
+        for (const key in instanceData) {
+          if (Object.prototype.hasOwnProperty.call(instanceData, key)) {
+            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+            const value = String(instanceData[key] !== null && instanceData[key] !== void 0 ? instanceData[key] : "");
+            instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
+          }
+        }
+      }
+      instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, "");
       const iframeContent = `
         <!doctype html>
         <html>
@@ -1119,7 +1162,7 @@ function createComponentFromCode2(code, moduleName) {
             </style>
           </head>
           <body class="bg-white">
-            ${code}
+            ${instanceSpecificHtml}
           </body>
         </html>
       `;

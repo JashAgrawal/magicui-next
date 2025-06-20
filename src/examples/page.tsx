@@ -13,10 +13,12 @@ const examplePRD = `\n# Dashboard Page\nCreate a dashboard page showing total sa
 const dashboardData = {
   totalSales: 12000,
   topProducts: [
-    { name: 'Wireless Headphones', sales: 45 },
-    { name: 'Smart Watch', sales: 32 },
-    { name: 'Coffee Maker', sales: 28 },
+    { name: 'Wireless Headphones', sales: 45, imageUrl: "https://example.com/nonexistent-headphones.jpg" }, // Added failing imageUrl
+    { name: 'Smart Watch', sales: 32, imageUrl: "https://placehold.co/80x80" }, // Valid placeholder
+    { name: 'Coffee Maker', sales: 28, imageUrl: "/images/nonexistent-coffee.png" }, // Added failing imageUrl
   ],
+  // Example of a main hero image for the page, which might also need a fallback
+  heroImage: "https://example.com/nonexistent-dashboard-hero.jpg"
 };
 
 const MagicUIPageExample = () => {
@@ -24,9 +26,8 @@ const MagicUIPageExample = () => {
     <MagicUIProvider theme={exampleTheme} projectPrd={examplePRD} apiKey={process.env.NEXT_PUBLIC_GEMINI_API_KEY}>
       <MagicUIPage
         moduleName="dashboard-page"
-        description="Show a dashboard page with total sales and a list of top products."
+        description="create an awesome dashboard page to display this data"
         data={dashboardData}
-        
       />
     </MagicUIProvider>
   );

@@ -32,7 +32,7 @@
     "declarationDir": "dist",
     "emitDeclarationOnly": false,
     "rootDir": "src",
-    "incremental": true
+    "incremental": false
   },
   "include": [
     "index.ts",

@@ -49,7 +49,7 @@ const productData = [
     id: 1,
     name: "Wireless Headphones",
     price: 99.99,
-    image: "https://placehold.co/300x200",
+    image: "https://example.com/nonexistent-headphones.jpg", // Failing URL
     rating: 4.5,
     reviews: 128,
     inStock: true,
@@ -59,7 +59,7 @@ const productData = [
     id: 2,
     name: "Smart Watch",
     price: 249.99,
-    image: "https://placehold.co/300x200",
+    image: "https://placehold.co/300x200", // This one can be a valid placeholder
     rating: 4.8,
     reviews: 89,
     inStock: true,
@@ -69,7 +69,7 @@ const productData = [
     id: 3,
     name: "Coffee Maker",
     price: 79.99,
-    image: "https://placehold.co/300x200",
+    image: "/images/nonexistent-coffeemaker.png", // Failing URL
     rating: 4.2,
     reviews: 156,
     inStock: false,
@@ -82,7 +82,7 @@ const userData = {
   name: "Alex Johnson",
   email: "alex.johnson@example.com",
   role: "Product Manager",
-  avatar: "https://placehold.co/100x100",
+  avatar: "https://example.com/nonexistent-avatar.png", // Failing URL
   status: "online",
   joinDate: "2023-01-15",
   department: "Product",
@@ -137,7 +137,7 @@ export default function MagicUIDemoPage() {
               <CardContent>
                 <MagicUI
                   moduleName="product-cards"
-                  description="Create a responsive grid of product cards showing product information with images, prices, ratings, and stock status"
+                  description="Create a responsive grid of product cards showing product information with {{name}}, {{price}}, {{rating}}, and {{category}}. Images at {{image}} should have fallbacks to https://placehold.co/300x200 if they fail to load."
                   data={productData}
                   className="min-h-[300px]"
                 />
@@ -155,7 +155,7 @@ export default function MagicUIDemoPage() {
               <CardContent>
                 <MagicUI
                   moduleName="user-profile"
-                  description="Create a user profile card displaying user information, avatar, status, and role details"
+                  description="Create a user profile card displaying user information: {{name}}, {{role}}, {{status}}. The avatar image at {{avatar}} should include a fallback to https://placehold.co/100x100."
                   data={userData}
                   className="min-h-[300px]"
                 />
@@ -173,7 +173,7 @@ export default function MagicUIDemoPage() {
               <CardContent>
                 <MagicUI
                   moduleName="analytics-dashboard"
-                  description="Create an analytics dashboard showing key metrics, sales data, and top products with visual charts and statistics"
+                  description="Create an analytics dashboard showing key metrics, sales data (e.g. {{totalSales}}), and top products with visual charts and statistics. If any images are used (e.g. for product icons), they should have fallbacks to https://placehold.co/50x50."
                   data={analyticsData}
                   className="min-h-[400px]"
                 />
@@ -191,7 +191,7 @@ export default function MagicUIDemoPage() {
               <CardContent>
                 <MagicUI
                   moduleName="product-table"
-                  description="Create a responsive data table for products with sorting, filtering, and action buttons"
+                  description="Create a responsive data table for products (showing {{name}}, {{price}}, {{category}}). If product images are included in rows from {{image}}, they must have fallbacks to https://placehold.co/80x80."
                   data={productData}
                   className="min-h-[300px]"
                 />
