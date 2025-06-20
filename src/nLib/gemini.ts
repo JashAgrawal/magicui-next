@@ -11,17 +11,6 @@ const DEFAULT_CONFIG: Partial<GeminiConfig> = {
   topK: 40,
 };
 
-// Initialize Gemini AI client
-export function createGeminiClient(config: GeminiConfig) {
-  if (!config.apiKey) {
-    throw new Error('Gemini API key is required');
-  }
-
-  return new GoogleGenAI({
-    apiKey: config.apiKey,
-  });
-}
-
 // Get Gemini configuration from environment variables
 export function getGeminiConfig(): GeminiConfig {
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
@@ -86,22 +75,4 @@ export function handleGeminiError(error: unknown): ApiError {
     code: 'UNKNOWN_ERROR',
     status: 500,
   };
-}
-
-// Validate message content
-export function validateMessageContent(content: string): { isValid: boolean; error?: string } {
-  if (!content || content.trim().length === 0) {
-    return { isValid: false, error: 'Message cannot be empty' };
-  }
-
-  if (content.length > 10000) {
-    return { isValid: false, error: 'Message is too long (max 10,000 characters)' };
-  }
-
-  return { isValid: true };
-}
-
-// Sanitize user input
-export function sanitizeInput(input: string): string {
-  return input.trim().replace(/\s+/g, ' ');
 }
