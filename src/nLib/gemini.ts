@@ -6,7 +6,7 @@ import { GoogleGenAI } from '@google/genai';
 const DEFAULT_CONFIG: Partial<GeminiConfig> = {
   model: 'gemini-2.0-flash-exp',
   temperature: 0.7,
-  maxOutputTokens: 4096,
+  // maxOutputTokens: 4096,
   topP: 0.8,
   topK: 40,
 };

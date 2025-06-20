@@ -8,7 +8,7 @@ import type {
   MagicUIConfig,
   ModuleLogs,
 } from "@/types/magic-ui";
-import { ORIGINAL_SYSTEM_INSTRUCTION } from "./geminiUiCreator";
+import { ORIGINAL_SYSTEM_INSTRUCTION } from "./geminiUiCreatorPrompts";
 
 /**
  * Service responsible for generating UI components using AI
@@ -44,7 +44,7 @@ class MagicUIService {
         systemInstruction: ORIGINAL_SYSTEM_INSTRUCTION,
         temperature: 0.7,
         topP: 0.9,
-        maxOutputTokens: 2000,
+        // maxOutputTokens: 2000,
       },
     });
 

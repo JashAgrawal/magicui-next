@@ -70,6 +70,7 @@ const productData = [
 function ProductDisplay() {
   return (
     <MagicUI
+      id="prod-cards"
       moduleName="product-cards"
       description="Create responsive product cards with images, prices, and ratings"
       data={productData}

@@ -3,7 +3,7 @@ import { getGeminiConfig, handleGeminiError } from "./gemini";
 import {
   ORIGINAL_SYSTEM_INSTRUCTION,
   ORIGINAL_CONFIG,
-} from "./geminiUiCreator";
+} from "./geminiUiCreatorPrompts";
 
 // Types for UI Creator Service
 export interface UiCreatorConfig {
@@ -29,7 +29,7 @@ export interface UiCreatorOptions {
 // Default configuration for UI Creator
 const DEFAULT_UI_CONFIG: UiCreatorConfig = {
   temperature: ORIGINAL_CONFIG.temperature,
-  maxOutputTokens: 4096,
+  // maxOutputTokens: 4096,
   model: "gemini-2.5-flash-preview-04-17", // Use the current model
   systemInstruction: ORIGINAL_SYSTEM_INSTRUCTION,
 };

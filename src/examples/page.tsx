@@ -25,6 +25,7 @@ const MagicUIPageExample = () => {
   return (
     <MagicUIProvider theme={exampleTheme} projectPrd={examplePRD} apiKey={process.env.NEXT_PUBLIC_GEMINI_API_KEY}>
       <MagicUIPage
+        id='dahh'
         moduleName="dashboard-page"
         description="create an awesome dashboard page to display this data"
         data={dashboardData}

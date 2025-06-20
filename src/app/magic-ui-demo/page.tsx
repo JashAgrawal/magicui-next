@@ -136,6 +136,7 @@ export default function MagicUIDemoPage() {
               </CardHeader>
               <CardContent>
                 <MagicUI
+                  id='prod-cards'
                   moduleName="product-cards"
                   description="Create a responsive grid of product cards showing product information with {{name}}, {{price}}, {{rating}}, and {{category}}. Images at {{image}} should have fallbacks to https://placehold.co/300x200 if they fail to load."
                   data={productData}
@@ -154,6 +155,7 @@ export default function MagicUIDemoPage() {
               </CardHeader>
               <CardContent>
                 <MagicUI
+                  id='user-profile'
                   moduleName="user-profile"
                   description="Create a user profile card displaying user information: {{name}}, {{role}}, {{status}}. The avatar image at {{avatar}} should include a fallback to https://placehold.co/100x100."
                   data={userData}
@@ -172,6 +174,7 @@ export default function MagicUIDemoPage() {
               </CardHeader>
               <CardContent>
                 <MagicUI
+                  id='analytics-dashboard'
                   moduleName="analytics-dashboard"
                   description="Create an analytics dashboard showing key metrics, sales data (e.g. {{totalSales}}), and top products with visual charts and statistics. If any images are used (e.g. for product icons), they should have fallbacks to https://placehold.co/50x50."
                   data={analyticsData}
@@ -190,6 +193,7 @@ export default function MagicUIDemoPage() {
               </CardHeader>
               <CardContent>
                 <MagicUI
+                  id='prod-table'
                   moduleName="product-table"
                   description="Create a responsive data table for products (showing {{name}}, {{price}}, {{category}}). If product images are included in rows from {{image}}, they must have fallbacks to https://placehold.co/80x80."
                   data={productData}
