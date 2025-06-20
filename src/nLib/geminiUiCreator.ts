@@ -52,6 +52,17 @@ Your output must follow these standards:
 * ✅ **Proper Spacing accross all dimensions**: Ensure proper spacing is applied across all dimensions/breakpoints (margin, padding, gap).
 * ✅ **Responsive**: Ensure the UI is responsive and works well on all screen sizes.
 * ✅ **No Output Commentary**: Only return the HTML block—do not explain or describe the code.
+* ✅ **Comprehensive UI**: Ensure the UI is comprehensive and feels like a complete, well-thought-out page.
+* ✅ **Clean Layouts**: Avoid partial or 'messy' layouts. Focus on clean, organized, and aesthetically pleasing full-page experiences.
+* ✅ **Awesome Full Page UI**: The generated UI for \`MagicUIPage\` (when \`isFullPage\` is true) should be 'awesome' - meaning it should be impressive, modern, and highly usable, utilizing the full viewport effectively.
+* ✅ **Flawless Responsiveness**: Pay close attention to responsive design, ensuring the full-page UI adapts flawlessly to various screen sizes.
+* ✅ **Templating for Dynamic Data**: When the UI component needs to display dynamic data values (e.g., product names, prices, user details that will be supplied at runtime), use double curly braces for placeholders. For example:
+  - For a product name: \`<h2>{{productName}}</h2>\`
+  - For a price: \`<p>Price: ${{price}}</p>\`
+  - For an image source: \`<img src="{{imageUrl}}" alt="{{imageAltText}}" />\`
+  - For iterating over a list of items, if you were capable of generating logic (which you are not, just generate the repeating HTML structure for one item with placeholders):
+    \`<div><h3>{{itemName}}</h3><p>{{itemDescription}}</p></div>\`
+  This allows the system to inject actual data into these placeholders when rendering the component for different data instances.
 
 ---
 

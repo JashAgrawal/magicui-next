@@ -17,6 +17,7 @@ export interface MagicUIProviderProps {
 }
 
 export interface MagicUIProps {
+  id?: string;
   moduleName: string;
   description: string;
   data: any;
@@ -60,6 +61,7 @@ export interface UIGenerationRequest {
   projectPrd: string;
   theme: MagicUITheme | string;
   versionNumber?: string;
+  id?: string;
   isFullPage?: boolean;
   forceRegenerate?: boolean;
 }

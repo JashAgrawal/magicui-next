@@ -10,12 +10,13 @@ import { RegenerateButton } from './RegenerateButton';
 import { LoadingOverlay } from './LoadingSpinner';
 import type { MagicUIProps, UIGenerationRequest } from '@/types/magic-ui';
 
-export function MagicUI({ 
-  moduleName, 
-  description, 
-  data, 
+export function MagicUI({
+  id,
+  moduleName,
+  description,
+  data,
   versionNumber,
-  className 
+  className
 }: MagicUIProps) {
   // All hooks must be called unconditionally at the top level
   const { theme, projectPrd, isInitialized, geminiClient } = useMagicUIContext();
@@ -41,18 +42,19 @@ export function MagicUI({
 
     try {
       // Update module state to indicate generation is in progress
-      actions.updateModuleState(moduleName, { 
+      actions.updateModuleState(moduleName, {
         isGenerating: true,
         error: null,
         lastGenerated: new Date()
       });
-      
+
       setComponentError(null);
 
       const request: UIGenerationRequest = {
+        id,
         moduleName,
         description,
-        data,
+        data, // Data is still passed for AI context during initial generation
         projectPrd: projectPrd || '',
         theme: theme || {},
         versionNumber: forceRegenerate ? undefined : versionNumber,
@@ -100,12 +102,13 @@ export function MagicUI({
       });
     }
   }, [
-    isInitialized, 
-    moduleName, 
-    description, 
-    data, 
-    projectPrd, 
-    theme, 
+    id,
+    isInitialized,
+    moduleName,
+    description,
+    // data, // Removed data from dependency array
+    projectPrd,
+    theme,
     versionNumber,
     actions,
     geminiClient
@@ -121,7 +124,7 @@ export function MagicUI({
     if (hasRequiredData) {
       generateUI(false);
     }
-  }, [hasRequiredData, generateUI]);
+  }, [hasRequiredData, generateUI, id]);
 
   // Loading state
   if (!isInitialized || !hasRequiredData) {
@@ -176,10 +179,24 @@ export function MagicUI({
 /**
  * Create a React component from generated code string
  */
-function createComponentFromCode(code: string, moduleName: string): React.ComponentType<any> {
+function createComponentFromCode(templateCode: string, moduleName: string): React.ComponentType<any> {
   try {
     // Create a component that renders the generated UI in an iframe
-    return function GeneratedComponent({ data, className }: any) {
+    return function GeneratedComponent({ data: instanceData, className }: any) {
+      let instanceSpecificHtml = templateCode;
+      if (instanceData && typeof instanceData === 'object') {
+        for (const key in instanceData) {
+          if (Object.prototype.hasOwnProperty.call(instanceData, key)) {
+            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+            // Ensure data[key] is a string or can be converted to one.
+            const value = String(instanceData[key] !== null && instanceData[key] !== undefined ? instanceData[key] : '');
+            instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
+          }
+        }
+      }
+      // Any placeholders not in instanceData will remain. Consider replacing them with empty strings.
+      instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, ''); // Optional: remove unreplaced placeholders
+
       const iframeContent = `
         <!doctype html>
         <html>
@@ -196,7 +213,7 @@ function createComponentFromCode(code: string, moduleName: string): React.Compon
             </style>
           </head>
           <body class="bg-white">
-            ${code}
+            ${instanceSpecificHtml}
           </body>
         </html>
       `;
