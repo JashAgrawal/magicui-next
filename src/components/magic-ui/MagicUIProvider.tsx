@@ -53,7 +53,7 @@ export {
   useProjectPrd, 
   useModule, 
   useMagicUIActions 
-} from '@/nLib/magic-ui-store';
+} from '@/lib/store/magic-ui-store';
 
 // Re-export types
 export type {

@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { useMagicUIContext } from '@/contexts/MagicUIContext';
-import { useMagicUIActions, useModule } from '@/nLib/magic-ui-store';
+import { useModule } from '@/lib/store/magic-ui-store';
 import { MagicUIErrorBoundary } from './MagicUIErrorBoundary';
 import { RegenerateButton } from './RegenerateButton';
 import { LoadingOverlay } from './LoadingSpinner';
-import type { MagicUIProps, UIGenerationRequest, UIGenerationResponse } from '@/types/magic-ui';
+import type { MagicUIProps, UIGenerationRequest } from '@/types/magic-ui';
 import DynamicRenderer from './dynamic-renderer';
+import { useUIGeneration } from '@/hooks/useUIGeneration';
 
 export function MagicUI({
   id,
@@ -24,31 +25,26 @@ export function MagicUI({
   }
 
   const { theme, projectPrd, isInitialized } = useMagicUIContext();
+  const { isGenerating: isGeneratingFromStore, error: moduleError } = useModule(moduleName);
+
   const {
-    isGenerating,
-    error: moduleError,
-  } = useModule(moduleName);
-  const actions = useMagicUIActions();
+    generateUI: performGeneration,
+    isLoading: isLoadingFromHook,
+    error: hookError
+  } = useUIGeneration({ moduleName });
 
   const [generatedComponent, setGeneratedComponent] = useState<React.ComponentType<{ data: any; className?: string }> | null>(null);
-  const [componentError, setComponentError] = useState<string | null>(null);
 
-  const hasRequiredClientData = isInitialized;
+  const isActuallyGenerating = isGeneratingFromStore || isLoadingFromHook;
+  const displayError = hookError || moduleError;
 
-  const generateUI = React.useCallback(async (forceRegenerate = false) => {
+  const callGenerateUI = useCallback(async (forceRegenerate = false) => {
     if (!isInitialized) {
       console.error('MagicUI context not properly initialized');
       return;
     }
 
-    actions.updateModuleState(moduleName, {
-      isGenerating: true,
-      error: null,
-      lastGenerated: new Date(),
-    });
-    setComponentError(null);
-
-    const request: UIGenerationRequest & { apiKey?: string } = {
+    const request: UIGenerationRequest = {
       id,
       moduleName,
       description,
@@ -56,57 +52,18 @@ export function MagicUI({
       projectPrd: projectPrd || '',
       theme: theme || {},
       versionNumber: forceRegenerate ? undefined : versionNumber,
-      forceRegenerate: forceRegenerate,
       aiConfig: aiConfig,
+      // forceRegenerate is handled by the hook's generateUI function's second param
     };
 
-    let result: UIGenerationResponse & { source?: string };
+    const result = await performGeneration(request, forceRegenerate);
 
-    try {
-      const apiResponse = await fetch('/api/generate-magic-ui', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!apiResponse.ok) {
-        const errorResult = await apiResponse.json().catch(() => ({ error: `API request failed with status ${apiResponse.status}` }));
-        throw new Error(errorResult.error || `API request failed with status ${apiResponse.status}`);
-      }
-
-      result = await apiResponse.json();
-    } catch (e: any) {
-      result = { success: false, error: e.message || 'API call failed', version: request.versionNumber || "1" };
-    }
-
-    if (result.success && result.code) {
+    if (result && result.success && result.code) {
       const component = createComponentFromCode(result.code, moduleName);
       setGeneratedComponent(() => component);
-      actions.updateModuleState(moduleName, {
-        isGenerating: false,
-        currentVersion: result.version || '1.0.0',
-        lastGenerated: new Date(),
-      });
-      actions.addLog(moduleName, {
-        type: 'info',
-        message: `Successfully fetched UI component (v${result.version || '1.0.0'}) from ${result.source || 'unknown'}`,
-        data: JSON.stringify({ version: result.version, source: result.source }),
-      });
-    } else {
-      const errorMessage = result.error || 'Failed to generate UI via API';
-      setComponentError(errorMessage);
-      actions.updateModuleState(moduleName, {
-        isGenerating: false,
-        error: errorMessage,
-      });
-      actions.addLog(moduleName, {
-        type: 'error',
-        message: 'Failed to fetch UI component via API',
-        data: JSON.stringify({ error: errorMessage }),
-      });
+      // Store updates are handled by the hook
     }
+    // Error state is also handled by the hook and reflected in displayError
   }, [
     id,
     isInitialized,
@@ -116,21 +73,21 @@ export function MagicUI({
     projectPrd,
     theme,
     versionNumber,
-    actions,
     aiConfig,
+    performGeneration,
   ]);
 
-  const handleRegenerate = React.useCallback(() => {
-    generateUI(true);
-  }, [generateUI]);
+  const handleRegenerate = useCallback(() => {
+    callGenerateUI(true);
+  }, [callGenerateUI]);
 
   useEffect(() => {
-    if (hasRequiredClientData) {
-      generateUI(false);
+    if (isInitialized) {
+      callGenerateUI(false);
     }
-  }, [hasRequiredClientData, generateUI, id]);
+  }, [isInitialized, callGenerateUI, id]); // id is included as it's part of the request key usually
 
-  if (!hasRequiredClientData) {
+  if (!isInitialized) {
     return (
       <div className={cn('p-4 border border-gray-200 rounded-lg bg-gray-50', className)}>
         <p className="text-gray-600 text-center">Initializing MagicUI...</p>
@@ -138,16 +95,16 @@ export function MagicUI({
     );
   }
 
-  if (componentError || moduleError) {
+  if (displayError) {
     return (
       <div className={cn('relative', className)}>
         <div className="p-4 border border-red-200 rounded-lg bg-red-50">
           <p className="text-red-800 font-medium">Failed to generate UI component</p>
-          <p className="text-red-600 text-sm mt-1">{componentError || moduleError}</p>
+          <p className="text-red-600 text-sm mt-1">{displayError}</p>
         </div>
         <RegenerateButton
           onRegenerate={handleRegenerate}
-          isGenerating={isGenerating}
+          isGenerating={isActuallyGenerating}
           positionStrategy='absolute-to-container'
         />
       </div>
@@ -157,7 +114,7 @@ export function MagicUI({
   return (
     <div className={cn('relative', className)}>
       <MagicUIErrorBoundary>
-        <LoadingOverlay isLoading={isGenerating}>
+        <LoadingOverlay isLoading={isActuallyGenerating}>
           {generatedComponent ? (
             React.createElement(generatedComponent, {
               data: data,
@@ -173,7 +130,7 @@ export function MagicUI({
 
       <RegenerateButton
         onRegenerate={handleRegenerate}
-        isGenerating={isGenerating}
+        isGenerating={isActuallyGenerating}
         positionStrategy='absolute-to-container'
       />
     </div>

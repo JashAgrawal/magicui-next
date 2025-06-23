@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, ReactNode, useMemo } from 'react';
-import { useMagicUIStore } from '@/nLib/magic-ui-store';
+import { useMagicUIStore } from '@/lib/store/magic-ui-store';
 import type { MagicUIContextType, MagicUITheme } from '@/types/magic-ui';
 
 const MagicUIContext = createContext<MagicUIContextType | undefined>(undefined);

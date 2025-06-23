@@ -1,53 +1,105 @@
-import { magicGenerate } from "@/nLib/handler";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { MagicUIService } from '@/lib/services/MagicUIService';
+import { AiSdkAdapterService } from '@/lib/services/AiSdkAdapterService';
+import { CacheService } from '@/lib/services/CacheService';
+import { GeminiService } from '@/lib/services/GeminiService';
+import { UIGenerationRequest, AiProviderConfig, GeminiConfig } from '@/types/magic-ui';
 
-// The GET method is optional, but useful for a health check.
-export async function GET() {
-    return new Response('Magic UI Generation API is running.', { status: 200 });
+// Initialize services
+const aiSdkAdapterService = new AiSdkAdapterService();
+const cacheService = new CacheService();
+// Note: For GeminiService, API key needs to be sourced, typically from env vars.
+// This is a simplified initialization; in a real app, key management would be more robust.
+let geminiService: GeminiService | undefined;
+if (process.env.GEMINI_API_KEY) {
+  geminiService = new GeminiService(process.env.GEMINI_API_KEY);
 }
 
-// The POST method is the core of the functionality.
-// It handles AI provider configuration and API keys.
+const magicUIService = new MagicUIService(aiSdkAdapterService, cacheService, geminiService);
+
+export async function GET() {
+  return NextResponse.json({ message: 'Magic UI Generation API is running.' }, { status: 200 });
+}
+
 export async function POST(request: NextRequest) {
+  try {
     const body = await request.json();
 
-    let aiConfig = body.aiConfig;
+    // The body should be the UIGenerationRequest, which includes aiConfig
+    const generationRequest = body as UIGenerationRequest;
 
-    // If aiConfig is not provided in the body, try to build it from environment variables for a default provider (e.g., OpenAI)
-    if (!aiConfig || !aiConfig.apiKey) {
-        const defaultProvider = process.env.DEFAULT_AI_PROVIDER || "gemini"; // Default to openai
-        const apiKeyFromEnv = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY; // Prioritize OPENAI_API_KEY
+    // Resolve aiConfig:
+    // 1. Use aiConfig from request body if present and has API key.
+    // 2. If not, try to use environment variables for default provider.
+    let resolvedAiConfig: AiProviderConfig;
+    const requestAiConfig = generationRequest.aiConfig;
 
-        if (!apiKeyFromEnv) {
-            return new Response(JSON.stringify({ success: false, error: "API key for AI provider is not set in request or environment variables." }), { status: 500 });
-        }
+    // Determine the provider string
+    let providerStr = requestAiConfig?.provider || process.env.DEFAULT_AI_PROVIDER || "gemini";
+    if (providerStr !== "openai" && providerStr !== "gemini") {
+      providerStr = "gemini"; // Fallback to a valid default
+    }
+    const provider = providerStr as "openai" | "gemini";
 
-        aiConfig = {
-            provider: body.aiConfig?.provider || defaultProvider,
-            model: body.aiConfig?.model, // User can still specify model even if key is from env
-            apiKey: apiKeyFromEnv,
-            baseURL: body.aiConfig?.baseURL, // User can still specify baseURL
-        };
+    // Determine API Key
+    let apiKey = requestAiConfig?.apiKey;
+    if (!apiKey) {
+      if (provider === "gemini" && process.env.GEMINI_API_KEY) {
+        apiKey = process.env.GEMINI_API_KEY;
+      } else if (provider === "openai" && process.env.OPENAI_API_KEY) {
+        apiKey = process.env.OPENAI_API_KEY;
+      } else {
+        apiKey = process.env.AI_API_KEY; // A generic fallback
+      }
     }
 
-    // Ensure provider is set if only API key was from env
-    if (!aiConfig.provider) {
-        aiConfig.provider = process.env.DEFAULT_AI_PROVIDER || 'gemini';
+    if (!apiKey) {
+      return NextResponse.json({ success: false, error: "API key for AI provider is not set in request or environment variables." }, { status: 500 });
     }
 
-    // Remove aiConfig from the main body to avoid sending it down if it contains sensitive info not needed by all parts.
-    // The handler `magicGenerate` will receive it separately.
-    const requestPayload = { ...body };
-    delete requestPayload.aiConfig;
+    // Construct resolvedAiConfig ensuring provider is correctly typed
+    if (provider === 'openai') {
+      resolvedAiConfig = {
+        provider: 'openai',
+        apiKey: apiKey,
+        model: requestAiConfig?.model,
+        baseURL: requestAiConfig?.baseURL,
+        temperature: requestAiConfig?.temperature,
+        topP: requestAiConfig?.topP,
+        maxOutputTokens: requestAiConfig?.maxOutputTokens,
+      };
+    } else { // provider === 'gemini'
+      resolvedAiConfig = {
+        provider: 'gemini',
+        apiKey: apiKey,
+        model: requestAiConfig?.model,
+        baseURL: requestAiConfig?.baseURL,
+        temperature: requestAiConfig?.temperature,
+        topP: requestAiConfig?.topP,
+        // Access topK only if requestAiConfig could be GeminiConfig
+        topK: (requestAiConfig as Partial<GeminiConfig>)?.topK,
+        maxOutputTokens: requestAiConfig?.maxOutputTokens,
+      };
+    }
 
-    // Create a new request object with the modified body to pass to the handler.
-    // The original request object's body is a stream and can only be read once.
-    const newRequest = new Request(request.url, {
-        method: request.method,
-        headers: request.headers,
-        body: JSON.stringify(requestPayload),
-    });
+    // Update the generationRequest with the resolved aiConfig
+    const fullGenerationRequest: UIGenerationRequest = {
+      ...generationRequest,
+      aiConfig: resolvedAiConfig,
+    };
 
-    // Pass the original request (or the new one with modified body) and the resolved aiConfig to the handler.
-    return magicGenerate(newRequest as NextRequest, { aiConfig });
+    const result = await magicUIService.generateUIComponent(fullGenerationRequest);
+
+    if (result.success) {
+      return NextResponse.json(result);
+    } else {
+      // Log the error for server-side inspection
+      console.error("Magic UI Generation Error:", result.error);
+      return NextResponse.json(result, { status: result.error?.includes("API key") ? 401 : 500 });
+    }
+  } catch (error: unknown) {
+    console.error('Error in API route (POST /api/generate-magic-ui):', error);
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    return NextResponse.json({ success: false, error: message, version: 'unknown' }, { status: 500 });
+  }
 }

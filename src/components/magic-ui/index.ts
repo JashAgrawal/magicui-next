@@ -22,7 +22,7 @@ export {
   useProjectPrd, 
   useModule, 
   useMagicUIActions 
-} from '@/nLib/magic-ui-store';
+} from '@/lib/store/magic-ui-store';
 
 // Types
 export type {
