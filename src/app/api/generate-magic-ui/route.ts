@@ -9,9 +9,17 @@ export async function GET() {
 // The POST method is the core of the functionality.
 // It reads the API key from the server environment and passes it to the handler.
 export async function POST(request: NextRequest) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const body = await request.json();
+    const apiKey = body.apiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
         return new Response(JSON.stringify({ success: false, error: "GEMINI_API_KEY is not set on the server." }), { status: 500 });
     }
-    return magicGenerate(request, { apiKey });
+    // Remove apiKey from body before forwarding
+    delete body.apiKey
+    const newRequest = new Request(request.url, {
+        method: request.method,
+        headers: request.headers,
+        body: JSON.stringify(body),
+    });
+    return magicGenerate(newRequest as NextRequest, { apiKey });
 }

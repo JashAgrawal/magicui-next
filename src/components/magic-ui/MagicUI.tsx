@@ -16,8 +16,9 @@ export function MagicUI({
   description,
   data,
   versionNumber,
-  className
-}: MagicUIProps) {
+  className,
+  apiKey
+}: MagicUIProps & { apiKey?: string }) {
   if (!id || typeof id !== 'string' || id.trim() === '') {
     throw new Error('MagicUI: The "id" prop is required and must be a non-empty string.');
   }
@@ -51,7 +52,7 @@ export function MagicUI({
     });
     setComponentError(null);
 
-    const request: UIGenerationRequest = {
+    const request: UIGenerationRequest & { apiKey?: string } = {
       id,
       moduleName,
       description,
@@ -60,6 +61,7 @@ export function MagicUI({
       theme: theme || {},
       versionNumber: forceRegenerate ? undefined : versionNumber,
       forceRegenerate: forceRegenerate, // Pass the flag to the API
+      ...(apiKey ? { apiKey } : {}), // Add apiKey if provided
     };
 
     let result: UIGenerationResponse & { source?: string };
@@ -120,6 +122,7 @@ export function MagicUI({
     theme,
     versionNumber,
     actions,
+    apiKey,
     // geminiClient, // Removed as AI interaction is now via API
   ]);
 

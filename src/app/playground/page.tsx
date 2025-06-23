@@ -78,6 +78,14 @@ function sanitizeForMagicUI(value: any): any {
   return String(value);
 }
 
+// Add a custom fetcher to inject apiKey into the request body for MagicUI and MagicUIPage
+function MagicUIWithApiKey(props: any) {
+  return <MagicUI {...props} apiKey={props.apiKey} />;
+}
+function MagicUIPageWithApiKey(props: any) {
+  return <MagicUIPage {...props} apiKey={props.apiKey} />;
+}
+
 export default function PlaygroundPage() {
   const [prd, setPrd] = useState(prefilled.prd);
   const [apiKey, setApiKey] = useState('');
@@ -145,20 +153,22 @@ export default function PlaygroundPage() {
           <MagicUIProvider theme={theme} projectPrd={prd}>
             <PreviewTabs code={code}>
               {mode === 'component' ? (
-                <MagicUI
+                <MagicUIWithApiKey
                   id="playground-demo"
                   moduleName="playground-demo"
                   description={description}
                   data={sanitizedData}
                   className="w-full"
+                  apiKey={apiKey}
                 />
               ) : (
-                <MagicUIPage
+                <MagicUIPageWithApiKey
                   id="playground-demo-page"
                   moduleName="playground-demo-page"
                   description={description}
                   data={sanitizedData}
                   className="w-full"
+                  apiKey={apiKey}
                 />
               )}
             </PreviewTabs>

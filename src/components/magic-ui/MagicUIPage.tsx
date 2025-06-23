@@ -15,8 +15,9 @@ export function MagicUIPage({
   description, 
   data, 
   versionNumber,
-  className
-}: MagicUIProps) {
+  className,
+  apiKey
+}: MagicUIProps & { apiKey?: string }) {
   if (!id || typeof id !== 'string' || id.trim() === '') {
     throw new Error('MagicUIPage: The "id" prop is required and must be a non-empty string.');
   }
@@ -47,7 +48,7 @@ export function MagicUIPage({
     });
     setComponentError(null);
 
-    const request: UIGenerationRequest = {
+    const request: UIGenerationRequest & { apiKey?: string } = {
       id, // Pass id, even if moduleName is primary for pages, for consistency
       moduleName,
       description,
@@ -57,6 +58,7 @@ export function MagicUIPage({
       versionNumber: forceRegenerate ? undefined : versionNumber,
       isFullPage: true,
       forceRegenerate: forceRegenerate,
+      ...(apiKey ? { apiKey } : {}),
     };
 
     let result: UIGenerationResponse & { source?: string };
@@ -117,6 +119,7 @@ export function MagicUIPage({
     theme, 
     versionNumber,
     actions,
+    apiKey,
     // geminiClient // Removed
   ]);
 
