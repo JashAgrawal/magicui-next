@@ -1,8 +1,8 @@
 import { ApiError, GeminiConfig } from '@/types/magic-ui';
-import { GoogleGenAI } from '@google/genai';
+// import { GoogleGenAI } from '@google/genai'; // No longer used directly in this file after createGeminiClient was commented out.
 
-
-// Default configuration for Gemini AI
+// Default configuration for Gemini AI (Potentially Obsolete for main flow)
+/*
 const DEFAULT_CONFIG: Partial<GeminiConfig> = {
   model: 'gemini-2.0-flash-exp',
   temperature: 0.7,
@@ -10,8 +10,10 @@ const DEFAULT_CONFIG: Partial<GeminiConfig> = {
   topP: 0.8,
   topK: 40,
 };
+*/
 
-// Initialize Gemini AI client
+// Initialize Gemini AI client (Potentially Obsolete for main flow, kept if geminiUiCreatorService or direct Gemini use is intended elsewhere)
+/*
 export function createGeminiClient(config: GeminiConfig) {
   if (!config.apiKey) {
     throw new Error('Gemini API key is required');
@@ -21,8 +23,11 @@ export function createGeminiClient(config: GeminiConfig) {
     apiKey: config.apiKey,
   });
 }
+*/
 
 // Get Gemini configuration from environment variables
+// This is still used by geminiUiCreatorService.ts
+// The API route also has logic for GEMINI_API_KEY as a fallback.
 export function getGeminiConfig(): GeminiConfig {
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
@@ -32,7 +37,7 @@ export function getGeminiConfig(): GeminiConfig {
 
   return {
     apiKey,
-    ...DEFAULT_CONFIG,
+    // ...DEFAULT_CONFIG, // DEFAULT_CONFIG was commented out; service using this seems to set its own defaults.
   };
 }
 

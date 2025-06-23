@@ -17,8 +17,9 @@ export function MagicUI({
   data,
   versionNumber,
   className,
-  apiKey
-}: MagicUIProps & { apiKey?: string }) {
+  // apiKey, // Deprecated: API key is now part of aiConfig
+  aiConfig // Added aiConfig from MagicUIProps
+}: MagicUIProps) { // Removed & { apiKey?: string }
   if (!id || typeof id !== 'string' || id.trim() === '') {
     throw new Error('MagicUI: The "id" prop is required and must be a non-empty string.');
   }
@@ -61,7 +62,8 @@ export function MagicUI({
       theme: theme || {},
       versionNumber: forceRegenerate ? undefined : versionNumber,
       forceRegenerate: forceRegenerate, // Pass the flag to the API
-      ...(apiKey ? { apiKey } : {}), // Add apiKey if provided
+      // ...(apiKey ? { apiKey } : {}), // Deprecated apiKey logic
+      aiConfig: aiConfig, // Pass the aiConfig object
     };
 
     let result: UIGenerationResponse & { source?: string };
@@ -122,7 +124,8 @@ export function MagicUI({
     theme,
     versionNumber,
     actions,
-    apiKey,
+    // apiKey, // Deprecated
+    aiConfig, // Added aiConfig to dependency array
     // geminiClient, // Removed as AI interaction is now via API
   ]);
 
@@ -191,46 +194,18 @@ export function MagicUI({
 }
 
 /**
- * Create a React component from generated code string
+ * Create a React component wrapper that renders AI-generated JSX string in an iframe.
  */
-function createComponentFromCode(templateCode: string, moduleName: string): React.ComponentType<any> {
+function createComponentFromCode(jsxCodeString: string, moduleName: string): React.ComponentType<any> {
   try {
-    // Create a component that renders the generated UI in an iframe
-    return function GeneratedComponent({ data: instanceData, className }: any) {
-      let instanceSpecificHtml = '';
-
-      if (Array.isArray(instanceData)) {
-        let aggregatedHtml = '';
-        for (const item of instanceData) {
-          let itemHtml = templateCode;
-          if (item && typeof item === 'object') {
-            for (const key in item) {
-              if (Object.prototype.hasOwnProperty.call(item, key)) {
-                const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-                const value = String(item[key] !== null && item[key] !== undefined ? item[key] : '');
-                itemHtml = itemHtml.replace(placeholder, value);
-              }
-            }
-          }
-          aggregatedHtml += itemHtml;
-        }
-        instanceSpecificHtml = aggregatedHtml;
-      } else {
-        instanceSpecificHtml = templateCode; // Initialize for non-array case
-        if (instanceData && typeof instanceData === 'object') {
-          for (const key in instanceData) {
-            if (Object.prototype.hasOwnProperty.call(instanceData, key)) {
-              const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-              // Ensure data[key] is a string or can be converted to one.
-              const value = String(instanceData[key] !== null && instanceData[key] !== undefined ? instanceData[key] : '');
-              instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
-            }
-          }
-        }
-      }
-
-      // Any placeholders not in instanceData will remain. Consider replacing them with empty strings.
-      instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, ''); // Optional: remove unreplaced placeholders
+    // This is the component that will be rendered by MagicUI.
+    // It receives the actual runtime data.
+    return function GeneratedComponentWrapper({ data: instanceData, className }: any) {
+      // Sanitize/prepare instanceData for injection into the iframe script.
+      // Dates, functions, or complex objects might need special handling.
+      // For now, we rely on JSON.stringify which handles common cases but loses functions/Dates (converts to ISO string).
+      // The AI-generated component should be prepared to handle data in this serialized format (e.g., parse date strings).
+      const serializableInstanceData = JSON.stringify(instanceData);
 
       const iframeContent = `
         <!doctype html>
@@ -239,16 +214,50 @@ function createComponentFromCode(templateCode: string, moduleName: string): Reac
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <script src="https://cdn.tailwindcss.com"></script>
+            <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+            <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+            <script src="https://unpkg.com/@babel/standalone@7/babel.min.js" crossorigin></script>
             <style>
               body { 
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-                margin: 0;
-                padding: 1rem;
+                margin: 0; /* Reset margin */
+                padding: 0; /* Reset padding */
+                height: 100%;
+                background-color: #fff; /* Default background */
+              }
+              #root {
+                padding: 1rem; /* Add padding to the root inside iframe for content spacing */
+                box-sizing: border-box;
+                width: 100%;
+                height: 100%;
               }
             </style>
           </head>
-          <body class="bg-white">
-            ${instanceSpecificHtml}
+          <body>
+            <div id="root"></div>
+            <script type="text/babel">
+              try {
+                // The AI generates a component string like: "({ data }) => { return <div>{data.name}</div>; }"
+                // We need to make this string into an actual function.
+                // Using 'new Function' is generally safer than 'eval' for this.
+                // The arguments to new Function are the parameter names, then the function body.
+                const AiGeneratedComponent = new Function('React', \`return ${jsxCodeString}\`)(React);
+
+                // Data passed from the parent component, already serialized
+                const runtimeData = JSON.parse(${serializableInstanceData});
+
+                ReactDOM.render(
+                  React.createElement(AiGeneratedComponent, { data: runtimeData }),
+                  document.getElementById('root')
+                );
+              } catch (e) {
+                console.error('Error rendering AI component in iframe:', e);
+                const rootDiv = document.getElementById('root');
+                if (rootDiv) {
+                  rootDiv.innerHTML = '<div style="color: red; padding: 10px;">Error rendering component: ' + e.message + '</div>';
+                }
+              }
+            </script>
           </body>
         </html>
       `;
@@ -257,31 +266,35 @@ function createComponentFromCode(templateCode: string, moduleName: string): Reac
         <div className={cn('w-full h-full', className)}>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-700">{moduleName}</h3>
+            {/* Optional: Add a small label indicating this is a JSX preview */}
+            <span className="text-xs text-gray-400">JSX Preview</span>
           </div>
           <div className="relative border rounded-lg overflow-hidden bg-white shadow-sm">
             <iframe
               srcDoc={iframeContent}
-              title={`Generated UI: ${moduleName}`}
-              className="w-full min-h-[300px] border-0"
-              sandbox="allow-same-origin allow-scripts"
+              title={`Generated JSX UI: ${moduleName}`}
+              className="w-full min-h-[300px] border-0" // Ensure iframe takes space
+              sandbox="allow-same-origin allow-scripts" // Keep sandboxing
               loading="lazy"
+              // Consider adding a mechanism to resize iframe based on content height if needed
             />
           </div>
           <div className="mt-2 text-xs text-gray-500">
-            <p>Preview of generated UI component</p>
+            <p>Preview of AI-generated React (JSX) component. Styling by TailwindCSS.</p>
           </div>
         </div>
       );
     };
   } catch (error) {
-    console.error('Failed to create component from code:', error);
+    console.error('Failed to create component wrapper from JSX code:', error);
     
-    // Fallback component
+    // Fallback component if the wrapper creation itself fails
     return function ErrorComponent() {
       return (
         <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-          <p className="text-red-800 font-medium">Failed to render generated component</p>
+          <p className="text-red-800 font-medium">Failed to prepare generated component</p>
           <p className="text-red-600 text-sm mt-1">Module: {moduleName}</p>
+          {error instanceof Error && <p className="text-red-500 text-xs mt-1">Details: {error.message}</p>}
         </div>
       );
     };

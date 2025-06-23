@@ -7,19 +7,47 @@ export async function GET() {
 }
 
 // The POST method is the core of the functionality.
-// It reads the API key from the server environment and passes it to the handler.
+// It handles AI provider configuration and API keys.
 export async function POST(request: NextRequest) {
     const body = await request.json();
-    const apiKey = body.apiKey || process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        return new Response(JSON.stringify({ success: false, error: "GEMINI_API_KEY is not set on the server." }), { status: 500 });
+
+    let aiConfig = body.aiConfig;
+
+    // If aiConfig is not provided in the body, try to build it from environment variables for a default provider (e.g., OpenAI)
+    if (!aiConfig || !aiConfig.apiKey) {
+        const defaultProvider = process.env.DEFAULT_AI_PROVIDER || 'openai'; // Default to openai
+        const apiKeyFromEnv = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY; // Prioritize OPENAI_API_KEY
+
+        if (!apiKeyFromEnv) {
+            return new Response(JSON.stringify({ success: false, error: "API key for AI provider is not set in request or environment variables." }), { status: 500 });
+        }
+
+        aiConfig = {
+            provider: body.aiConfig?.provider || defaultProvider,
+            model: body.aiConfig?.model, // User can still specify model even if key is from env
+            apiKey: apiKeyFromEnv,
+            baseURL: body.aiConfig?.baseURL, // User can still specify baseURL
+        };
     }
-    // Remove apiKey from body before forwarding
-    delete body.apiKey
+
+    // Ensure provider is set if only API key was from env
+    if (!aiConfig.provider) {
+        aiConfig.provider = process.env.DEFAULT_AI_PROVIDER || 'openai';
+    }
+
+    // Remove aiConfig from the main body to avoid sending it down if it contains sensitive info not needed by all parts.
+    // The handler `magicGenerate` will receive it separately.
+    const requestPayload = { ...body };
+    delete requestPayload.aiConfig;
+
+    // Create a new request object with the modified body to pass to the handler.
+    // The original request object's body is a stream and can only be read once.
     const newRequest = new Request(request.url, {
         method: request.method,
         headers: request.headers,
-        body: JSON.stringify(body),
+        body: JSON.stringify(requestPayload),
     });
-    return magicGenerate(newRequest as NextRequest, { apiKey });
+
+    // Pass the original request (or the new one with modified body) and the resolved aiConfig to the handler.
+    return magicGenerate(newRequest as NextRequest, { aiConfig });
 }

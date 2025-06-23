@@ -133,3 +133,56 @@ export interface ApiError {
   code: string;
   status: number;
 }
+
+// AI Provider Configuration Types
+export type ProviderType = 'openai' | 'gemini'; // Add more as supported
+
+export interface BaseAiConfig {
+  provider: ProviderType;
+  apiKey: string;
+  model?: string;
+  baseURL?: string; // For self-hosted or alternative endpoints
+  temperature?: number;
+  maxOutputTokens?: number;
+  // Add other common parameters here
+}
+
+export interface OpenAIConfig extends BaseAiConfig {
+  provider: 'openai';
+  topP?: number;
+  // Add other OpenAI specific parameters here
+}
+
+export interface GeminiAiConfig extends BaseAiConfig { // Renamed to avoid conflict with existing GeminiConfig
+  provider: 'gemini';
+  topK?: number;
+  topP?: number; // Gemini also supports topP
+  // Add other Gemini specific parameters here
+}
+
+export type AiProviderConfig = OpenAIConfig | GeminiAiConfig; // Union of all supported configs
+
+// Update UIGenerationRequest and MagicUIProps
+export interface UIGenerationRequest {
+  moduleName: string;
+  description: string;
+  data: any;
+  projectPrd: string;
+  theme: MagicUITheme | string;
+  versionNumber?: string;
+  id?: string;
+  isFullPage?: boolean;
+  forceRegenerate?: boolean;
+  aiConfig?: AiProviderConfig; // Added aiConfig
+}
+
+export interface MagicUIProps {
+  id: string;
+  moduleName: string;
+  description: string;
+  data: any;
+  versionNumber?: string;
+  className?: string;
+  locked?: boolean;
+  aiConfig?: AiProviderConfig; // Added aiConfig
+}
