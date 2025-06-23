@@ -19,9 +19,10 @@ const productData = {
 
 const MagicUIComponent = () => {
   return (
-    <MagicUIProvider theme={exampleTheme} projectPrd={examplePRD} apiKey={process.env.NEXT_PUBLIC_GEMINI_API_KEY}>
+    <MagicUIProvider theme={exampleTheme} projectPrd={examplePRD}>
       <div className="max-w-md mx-auto mt-8">
         <MagicUI
+          id='s'
           moduleName="product-card"
           description="Show a product card with product name ({{name}}) and price (${{price}}). The product image at {{image}} (with alt text {{altText}}) should include a fallback to https://placehold.co/300x200 if the original image fails."
           data={productData}

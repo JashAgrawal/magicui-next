@@ -12,10 +12,9 @@ import type { MagicUIProviderProps } from '@/types/magic-ui';
  * 
  * @param theme - Theme configuration (object or string)
  * @param projectPrd - Product Requirements Document string
- * @param apiKey - Gemini API key (string, optional)
  * @param children - Child components
  */
-export function MagicUIProvider({ theme, projectPrd, apiKey, children }: MagicUIProviderProps) {
+export function MagicUIProvider({ theme, projectPrd, children }: MagicUIProviderProps) {
   // Validate required props
   if (!projectPrd || projectPrd.trim().length === 0) {
     console.warn('MagicUIProvider: projectPrd is required and should not be empty');
@@ -26,7 +25,7 @@ export function MagicUIProvider({ theme, projectPrd, apiKey, children }: MagicUI
   }
 
   return (
-    <MagicUIContextProvider theme={theme} projectPrd={projectPrd} apiKey={apiKey}>
+    <MagicUIContextProvider theme={theme} projectPrd={projectPrd}>
       {children}
     </MagicUIContextProvider>
   );

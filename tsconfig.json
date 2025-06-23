@@ -9,43 +9,36 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    // "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "declaration": true,
+    "incremental": false,
     "paths": {
       "@/*": [
         "./src/*"
       ]
     },
-    "outDir": "dist",
-    "declaration": true,
-    "declarationDir": "dist",
-    "emitDeclarationOnly": false,
-    "rootDir": "src",
-    "incremental": false
+    "noEmit": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
-    "index.ts",
-    "src/components/magic-ui/**/*",
-    "src/contexts/MagicUIContext.tsx",
-    "src/types/magic-ui.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "src/nLib",
+    "dist",
+    ".next",
     "test",
-    "public",
-    ".next"
+    "public"
   ]
 }
