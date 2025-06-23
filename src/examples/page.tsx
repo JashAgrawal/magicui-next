@@ -6,7 +6,7 @@ import { MagicUIPage } from '@/components/magic-ui'
 
 const page = () => {
   return (
-    <MagicUIProvider theme={{}} projectPrd={"Landing page for dune"} apiKey={process.env.GEMINI_API_KEY}>
+    <MagicUIProvider theme={{}} projectPrd={"Landing page for dune"}>
       <MagicUIPage
         id='landing-pageee'
         moduleName="LandingPage"

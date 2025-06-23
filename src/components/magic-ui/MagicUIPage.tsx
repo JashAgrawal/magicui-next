@@ -24,11 +24,11 @@ export function MagicUIPage({
   const {
     isGenerating,
     error: moduleError,
-    currentVersion: moduleVersion
+    // currentVersion: moduleVersion // Remove unused
   } = useModule(moduleName);
   const actions = useMagicUIActions();
   
-  const [generatedComponent, setGeneratedComponent] = useState<React.ComponentType<{ data: any; className?: string }> | null>(null);
+  const [generatedComponent, setGeneratedComponent] = useState<React.ComponentType<{ data: unknown; className?: string }> | null>(null);
   const [componentError, setComponentError] = useState<string | null>(null);
   
   // geminiClient is no longer directly used here for generation.
@@ -179,9 +179,37 @@ export function MagicUIPage({
   );
 }
 
-function createComponentFromCode(code: string, moduleName: string): React.ComponentType<any> {
+function createComponentFromCode(code: string, moduleName: string): React.ComponentType<{ data: unknown; className?: string }> {
   try {
-    return function GeneratedPageComponent({ data, className }: any) {
+    return function GeneratedPageComponent({ data, className }: { data: unknown; className?: string }) {
+      let instanceSpecificHtml = code;
+      if (Array.isArray(data)) {
+        let aggregatedHtml = '';
+        for (const item of data) {
+          let itemHtml = code;
+          if (item && typeof item === 'object') {
+            for (const key in item) {
+              if (Object.prototype.hasOwnProperty.call(item, key)) {
+                const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+                const value = String(item[key] !== null && item[key] !== undefined ? item[key] : '');
+                itemHtml = itemHtml.replace(placeholder, value);
+              }
+            }
+          }
+          aggregatedHtml += itemHtml;
+        }
+        instanceSpecificHtml = aggregatedHtml;
+      } else if (data && typeof data === 'object') {
+        for (const key in data) {
+          if (Object.prototype.hasOwnProperty.call(data, key)) {
+            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+            const value = String((data as Record<string, unknown>)[key] !== null && (data as Record<string, unknown>)[key] !== undefined ? (data as Record<string, unknown>)[key] : '');
+            instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
+          }
+        }
+      }
+      // Remove unreplaced placeholders
+      instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, '');
       const iframeContent = `
         <!doctype html>
         <html>
@@ -199,11 +227,10 @@ function createComponentFromCode(code: string, moduleName: string): React.Compon
             </style>
           </head>
           <body class="bg-white">
-            ${code}
+            ${instanceSpecificHtml}
           </body>
         </html>
       `;
-
       return (
         <div className={cn('w-full min-h-screen', className)}>
           <iframe
@@ -216,18 +243,10 @@ function createComponentFromCode(code: string, moduleName: string): React.Compon
         </div>
       );
     };
-  } catch (error) {
-    console.error('Failed to create page component from code:', error);
-    
-    return function ErrorComponent({ data }: any) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-red-50">
-          <div className="p-4 border border-red-200 rounded-lg">
-            <p className="text-red-800 font-medium">Failed to render generated page</p>
-            <p className="text-red-600 text-sm mt-1">Module: {moduleName}</p>
-          </div>
-        </div>
-      );
+  } catch (e) {
+    console.log(e);
+    return function ErrorComponent() {
+      return <div>Error rendering generated page component</div>;
     };
   }
 }

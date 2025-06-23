@@ -1,1 +1,2 @@
-export { MagicUIProvider, MagicUI, MagicUIPage } from './components/magic-ui'; 
+export * from './components/magic-ui';
+export * from './nLib/handler'; 

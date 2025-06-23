@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LoadingSpinner } from './LoadingSpinner';
 import type { RegenerateButtonProps } from '@/types/magic-ui';
@@ -18,14 +17,12 @@ export function RegenerateButton({
     : 'absolute bottom-2 right-2';
 
   return (
-    <Button
+    <button
       onClick={onRegenerate}
       disabled={isGenerating}
-      size="sm"
-      variant="outline"
       className={cn(
-        'z-50 shadow-lg hover:shadow-xl transition-all duration-200',
-        positionClasses,
+        'flex justify-center items-center px-4 py-2 rounded-full border-2 z-50 shadow-lg hover:shadow-xl transition-all duration-200',
+        positionClasses || "fixed bottom-5 right-5",
         'bg-white/90 backdrop-blur-sm border-gray-200 hover:bg-white',
         'text-gray-700 hover:text-gray-900',
         isGenerating && 'cursor-not-allowed opacity-75',
@@ -44,7 +41,7 @@ export function RegenerateButton({
           Regenerate
         </>
       )}
-    </Button>
+    </button>
   );
 }
 
@@ -55,11 +52,9 @@ export function InlineRegenerateButton({
   className 
 }: RegenerateButtonProps) {
   return (
-    <Button
+    <button
       onClick={onRegenerate}
       disabled={isGenerating}
-      size="sm"
-      variant="ghost"
       className={cn(
         'text-xs text-gray-500 hover:text-gray-700 h-6 px-2',
         isGenerating && 'cursor-not-allowed opacity-75',
@@ -78,6 +73,6 @@ export function InlineRegenerateButton({
           <span className="text-xs">Regenerate</span>
         </>
       )}
-    </Button>
+    </button>
   );
 }

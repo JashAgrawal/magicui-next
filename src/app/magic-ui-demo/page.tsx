@@ -212,7 +212,7 @@ export default function MagicUIDemoPage() {
             <CardContent className="text-blue-700 space-y-2">
               <p>1. <strong>Wrap your app</strong> with MagicUIProvider and provide theme + PRD</p>
               <p>2. <strong>Use MagicUI components</strong> with moduleName, description, and data</p>
-              <p>3. <strong>Click "Regenerate"</strong> to create new versions of any component</p>
+              <p>3. <strong>Click &quot;Regenerate&quot;</strong> to create new versions of any component</p>
               <p>4. <strong>Version history</strong> is automatically saved in localStorage</p>
             </CardContent>
           </Card>

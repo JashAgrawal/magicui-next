@@ -284,3 +284,149 @@ export const magicUIService = new MagicUIService();
 
 export default magicUIService;
 */
+
+import { GoogleGenAI } from "@google/genai";
+import {
+  readCache,
+  writeCache,
+  CacheEntry,
+} from "./cache-file-utils";
+import {
+  UIGenerationRequest,
+  UIGenerationResponse,
+} from "@/types/magic-ui";
+import { ORIGINAL_SYSTEM_INSTRUCTION } from "./geminiUiCreator";
+
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+function generateCacheKey(request: UIGenerationRequest): string {
+  if (request.id && typeof request.id === "string" && request.id.trim() !== "") {
+    return `magicui-id:${request.id}`;
+  }
+  const { moduleName, versionNumber, theme, data, projectPrd } = request;
+  const themeString = typeof theme === "string" ? theme : JSON.stringify(theme);
+  const dataString = JSON.stringify(data);
+  return `${moduleName}:${versionNumber || "latest"}:${themeString}:${dataString}:${projectPrd}`;
+}
+
+async function generateWithAI(
+  request: UIGenerationRequest,
+  apiKey: string,
+): Promise<Omit<UIGenerationResponse, "success">> {
+  if (!apiKey) {
+    return {
+      error: "AI service is not configured (API key missing).",
+      version: request.versionNumber || "1.0.0",
+    };
+  }
+
+  try {
+    const genAI = new GoogleGenAI({ apiKey });
+    const chatInstance = genAI.chats.create({
+      model: "gemini-2.5-flash-lite-preview-06-17",
+      config: {
+        systemInstruction: ORIGINAL_SYSTEM_INSTRUCTION,
+        temperature: 2,
+      },
+    });
+
+    const prompt = `
+      Module Name: ${request.moduleName}
+      Description: ${request.description}
+      Data: ${JSON.stringify(request.data, null, 2)}
+      ID: ${request.id || "N/A"}
+      ${request.projectPrd ? `Project PRD: ${request.projectPrd}` : ""}
+      ${request.theme ? `Theme: ${typeof request.theme === "string" ? request.theme : JSON.stringify(request.theme, null, 2)}` : ""}
+      ${request.isFullPage ? "Type: Full Page UI" : "Type: UI Component"}
+
+      Please generate the HTML/Tailwind code based on these details and the system instructions.
+      Remember to use {{placeholder}} syntax for dynamic data points as previously instructed.
+      For images, ensure they have onerror fallbacks to https://placehold.co/.
+    `;
+
+    const result = await chatInstance.sendMessage({ message: [{ text: prompt }] });
+    const text = result.text;
+
+    if (!text) {
+      throw new Error("AI returned an empty response.");
+    }
+
+    const codeMatch = text.match(/```(?:html|tsx|jsx|js)?\s*([\s\S]*?)\s*```/);
+    const code = codeMatch ? codeMatch[1].trim() : text.trim();
+
+    return {
+      code,
+      version: new Date().toISOString(),
+    };
+  } catch (error: unknown) {
+    console.error("Error generating UI with AI:", error);
+    return {
+      error: error instanceof Error ? error.message : "Failed to generate UI with AI.",
+      version: request.versionNumber || "1.0.0",
+    };
+  }
+}
+
+export async function generateUIComponent(
+  generationRequest: UIGenerationRequest,
+  options: { apiKey: string },
+): Promise<UIGenerationResponse> {
+  if (
+    !generationRequest ||
+    !generationRequest.moduleName ||
+    !generationRequest.description
+  ) {
+    return {
+      success: false,
+      error: "Invalid request payload",
+      version: generationRequest.versionNumber || "1.0.0",
+    };
+  }
+
+  if (!options.apiKey) {
+    console.error("Attempted to generate UI without API key.");
+    return {
+      success: false,
+      error: "AI service is not configured.",
+      version: generationRequest.versionNumber || "1.0.0",
+    };
+  }
+
+  const cache = await readCache();
+  const key = generateCacheKey(generationRequest);
+  const cachedEntry = cache.get(key);
+
+  if (
+    !generationRequest.forceRegenerate &&
+    cachedEntry &&
+    Date.now() - cachedEntry.timestamp < CACHE_TTL
+  ) {
+    return {
+      success: true,
+      code: cachedEntry.code,
+      version: new Date(cachedEntry.timestamp).toISOString(),
+    };
+  }
+
+  const aiResult = await generateWithAI(generationRequest, options.apiKey);
+
+  if (aiResult.code) {
+    const newEntry: CacheEntry = {
+      code: aiResult.code,
+      timestamp: Date.now(),
+    };
+    cache.set(key, newEntry);
+    await writeCache(cache);
+    return {
+      success: true,
+      code: aiResult.code,
+      version: aiResult.version,
+    };
+  } else {
+    return {
+      success: false,
+      error: aiResult.error || "AI generation failed.",
+      version: aiResult.version,
+    };
+  }
+}

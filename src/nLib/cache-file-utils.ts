@@ -37,9 +37,9 @@ export async function readCache(): Promise<CacheData> {
     }
     console.warn('Cache file content was not a valid array of entries or object. Starting with an empty cache.');
     return new Map<string, CacheEntry>();
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If error is ENOENT (file not found), it's not a critical error, just means no cache yet.
-    if (error.code === 'ENOENT') {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'ENOENT') {
       // console.log('Cache file not found. Starting with an empty cache.');
       return new Map<string, CacheEntry>();
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMagicUIContext } from '@/contexts/MagicUIContext';
 import { useMagicUIActions, useModule } from '@/nLib/magic-ui-store';
@@ -23,11 +23,10 @@ export function MagicUI({
   }
 
   // All hooks must be called unconditionally at the top level
-  const { theme, projectPrd, isInitialized, geminiClient } = useMagicUIContext();
+  const { theme, projectPrd, isInitialized } = useMagicUIContext();
   const {
     isGenerating,
     error: moduleError,
-    currentVersion: moduleVersion
   } = useModule(moduleName);
   const actions = useMagicUIActions();
   
@@ -275,7 +274,7 @@ function createComponentFromCode(templateCode: string, moduleName: string): Reac
     console.error('Failed to create component from code:', error);
     
     // Fallback component
-    return function ErrorComponent({ data }: any) {
+    return function ErrorComponent() {
       return (
         <div className="p-4 border border-red-200 rounded-lg bg-red-50">
           <p className="text-red-800 font-medium">Failed to render generated component</p>

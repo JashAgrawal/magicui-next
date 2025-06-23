@@ -6,14 +6,14 @@ export interface MagicUITheme {
   border?: string;
   radius?: string;
   spacing?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface MagicUIProviderProps {
   theme: MagicUITheme | null | undefined;
   projectPrd: string;
   children: React.ReactNode;
-  apiKey?: string;
+  apiRoute?: string;
 }
 
 export interface MagicUIProps {
@@ -23,12 +23,13 @@ export interface MagicUIProps {
   data: any;
   versionNumber?: string;
   className?: string;
+  locked?: boolean;
 }
 
 export interface MagicUIContextType {
-  theme: MagicUITheme | null | undefined ;
+  theme: MagicUITheme | null | undefined;
   projectPrd: string;
-  geminiClient: any;
+  apiRoute: string;
   isInitialized: boolean;
 }
 
