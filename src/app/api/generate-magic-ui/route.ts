@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     // If aiConfig is not provided in the body, try to build it from environment variables for a default provider (e.g., OpenAI)
     if (!aiConfig || !aiConfig.apiKey) {
-        const defaultProvider = process.env.DEFAULT_AI_PROVIDER || 'openai'; // Default to openai
+        const defaultProvider = process.env.DEFAULT_AI_PROVIDER || "gemini"; // Default to openai
         const apiKeyFromEnv = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY; // Prioritize OPENAI_API_KEY
 
         if (!apiKeyFromEnv) {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Ensure provider is set if only API key was from env
     if (!aiConfig.provider) {
-        aiConfig.provider = process.env.DEFAULT_AI_PROVIDER || 'openai';
+        aiConfig.provider = process.env.DEFAULT_AI_PROVIDER || 'gemini';
     }
 
     // Remove aiConfig from the main body to avoid sending it down if it contains sensitive info not needed by all parts.

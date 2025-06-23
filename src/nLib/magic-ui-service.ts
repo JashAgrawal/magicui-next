@@ -291,6 +291,7 @@ import {
   writeCache,
   CacheEntry,
 } from "./cache-file-utils";
+import markdownToTxt from 'markdown-to-txt';
 import {
   UIGenerationRequest,
   UIGenerationResponse,
@@ -299,6 +300,8 @@ import {
 } from "@/types/magic-ui";
 import { ORIGINAL_SYSTEM_INSTRUCTION } from "./geminiUiCreator"; // This will be updated later for JSX
 import { getAiClient } from "./aiSdkAdapter"; // Import the new adapter
+import { ResponseCreateParamsNonStreaming } from "openai/resources/responses/responses.mjs";
+import { ChatCompletionCreateParamsNonStreaming } from "openai/resources.mjs";
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
@@ -318,6 +321,18 @@ function generateCacheKey(request: UIGenerationRequest): string {
 
   return `${moduleName}:${versionNumber || "latest"}:${themeString}:${dataString}:${projectPrd}-provider:${provider}-model:${model}`;
 }
+
+function extractJSXFunctionCode(generatedText: string): string | null {
+  // First, extract the code block content if it exists
+  const codeBlockMatch = generatedText.match(/```(?:html|tsx|jsx|js|javascript|typescript)?\s*([\s\S]*?)\s*```/i);
+  const codeContent = codeBlockMatch ? codeBlockMatch[1] : generatedText;
+
+  // Then, match the function that starts with `({ data }) => {` or similar
+  const functionMatch = codeContent.match(/\(?\{\s*data\s*\}\)?\s*=>\s*\{[\s\S]*?\}/);
+
+  return functionMatch ? functionMatch[0] : null;
+}
+
 
 async function generateWithAI(
   request: UIGenerationRequest,
@@ -350,55 +365,38 @@ async function generateWithAI(
       The output should be ONLY the component code string itself.
     `;
 
-    let generatedText: string | null = null;
+
 
     // Specific logic for OpenAI
-    if (aiConfig.provider === 'openai') {
-      const openaiParams: any = { // Use 'any' for flexibility or define a more specific type
-        model: aiConfig.model || 'gpt-3.5-turbo', // Default model from adapter can be overridden
+      const openaiParams: ChatCompletionCreateParamsNonStreaming = { // Use 'any' for flexibility or define a more specific type
+        model: aiConfig.model || 'gemini-2.5-flash', // Default model from adapter can be overridden
+        // instructions:ORIGINAL_SYSTEM_INSTRUCTION,
         messages: [
           { role: "system", content: ORIGINAL_SYSTEM_INSTRUCTION }, // System prompt
           { role: "user", content: userPrompt }, // User prompt
         ],
-        temperature: aiConfig.temperature ?? 0.7, // Use provided or default
-        max_tokens: aiConfig.maxOutputTokens ?? 4000, // Use provided or default
+        temperature: aiConfig.temperature ?? 1, // Use provided or default
+        // max_tokens: aiConfig.maxOutputTokens ?? 4000, // Use provided or default
       };
       if ((aiConfig as OpenAIConfig).topP) {
         openaiParams.top_p = (aiConfig as OpenAIConfig).topP;
       }
 
-      const completion = await aiClient.chat.completions.create(openaiParams);
-      generatedText = completion.choices[0]?.message?.content;
-    } else if (aiConfig.provider === 'gemini') {
-      // Placeholder for Gemini SDK calls if we were to use it via adapter
-      // For now, the getAiClient for 'gemini' would throw, or you'd implement its call here
-      // This part assumes getAiClient can return a Gemini-compatible client in the future
-      // and that client has a similar chat.sendMessage interface.
-      // const geminiClient = getAiClient(aiConfig); // This would be a Gemini client
-      // const result = await (geminiClient as any).sendMessage({ message: [{ text: userPrompt }] }); // Example
-      // generatedText = result.text;
-      return {
-        error: "Gemini provider not fully implemented in generateWithAI after OpenAI switch.",
-        version: request.versionNumber || "1.0.0",
-      };
-    } else {
-        // This case should ideally not be reached if AiProviderConfig.provider is strictly typed
-        // and getAiClient has already validated the provider.
-        // However, to satisfy TS when it narrows provider to 'never':
-        const providerName = (aiConfig as AiProviderConfig).provider;
-        return {
-            error: `Unsupported or unhandled provider in generateWithAI: ${providerName}`,
-            version: request.versionNumber || "1.0.0",
-        };
-    }
+
+      const response = await aiClient.chat.completions.create(openaiParams);
+      const generatedText = response.choices[0].message.content;
+      
 
     if (!generatedText) {
       throw new Error("AI returned an empty response.");
     }
-
+    let code = '';
     // Code extraction logic (will need adjustment if AI directly returns code without markdown)
-    const codeMatch = generatedText.match(/```(?:html|tsx|jsx|js)?\s*([\s\S]*?)\s*```/);
-    const code = codeMatch ? codeMatch[1].trim() : generatedText.trim();
+    if(generatedText.startsWith("`")){
+      const rb = generatedText.indexOf("(");
+      const lb = generatedText.lastIndexOf("}");
+      code = generatedText.substring(rb,lb+1) 
+    }
 
     return {
       code,

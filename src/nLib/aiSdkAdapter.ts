@@ -10,7 +10,7 @@ const providerDetails: Record<ProviderType, { defaultModel: string; baseURL?: st
   },
   gemini: { // Added placeholder for Gemini to satisfy ProviderType
     defaultModel: 'gemini-pro', // Example default model for Gemini
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta', // Example base URL
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', // Example base URL
   }
   // Future providers can be added here
 };
@@ -28,20 +28,12 @@ export function getAiClient(config: AiProviderConfig): OpenAI {
   // const model = config.model || details.defaultModel; // Model is determined/used at the point of API call, not client instantiation
   const baseURL = config.baseURL || details.baseURL;
 
-  switch (config.provider) {
-    case 'openai':
-      return new OpenAI({
-        apiKey: config.apiKey,
-        baseURL: baseURL,
-      });
-    // Add cases for other providers as they are supported
-    // case 'gemini':
-    //   // Return a Gemini client instance (once implemented)
-    //   // For now, this would throw due to the check above if not 'openai'
-    //   throw new Error('Gemini client not yet fully implemented in aiSdkAdapter.');
-    default:
-      throw new Error(`Provider ${config.provider} client initialization not implemented.`);
-  }
+  console.log(config,baseURL);
+
+  return new OpenAI({
+    apiKey: config.apiKey,
+    baseURL: baseURL,
+  });
 }
 
 // Example usage (for illustration, will be used in magic-ui-service.ts)

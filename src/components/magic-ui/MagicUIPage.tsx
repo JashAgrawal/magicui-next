@@ -8,6 +8,7 @@ import { MagicUIErrorBoundary } from './MagicUIErrorBoundary';
 import { RegenerateButton } from './RegenerateButton';
 import { LoadingOverlay } from './LoadingSpinner';
 import type { MagicUIProps, UIGenerationRequest, UIGenerationResponse } from '@/types/magic-ui';
+import DynamicRenderer from './dynamic-renderer';
 
 export function MagicUIPage({ 
   id,
@@ -183,75 +184,13 @@ export function MagicUIPage({
 }
 
 function createComponentFromCode(code: string, moduleName: string): React.ComponentType<{ data: unknown; className?: string }> {
-  try {
-    return function GeneratedPageComponent({ data, className }: { data: unknown; className?: string }) {
-      let instanceSpecificHtml = code;
-      if (Array.isArray(data)) {
-        let aggregatedHtml = '';
-        for (const item of data) {
-          let itemHtml = code;
-          if (item && typeof item === 'object') {
-            for (const key in item) {
-              if (Object.prototype.hasOwnProperty.call(item, key)) {
-                const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-                const value = String(item[key] !== null && item[key] !== undefined ? item[key] : '');
-                itemHtml = itemHtml.replace(placeholder, value);
-              }
-            }
-          }
-          aggregatedHtml += itemHtml;
-        }
-        instanceSpecificHtml = aggregatedHtml;
-      } else if (data && typeof data === 'object') {
-        for (const key in data) {
-          if (Object.prototype.hasOwnProperty.call(data, key)) {
-            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-            const value = String((data as Record<string, unknown>)[key] !== null && (data as Record<string, unknown>)[key] !== undefined ? (data as Record<string, unknown>)[key] : '');
-            instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
-          }
-        }
-      }
-      // Remove unreplaced placeholders
-      instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, '');
-      const iframeContent = `
-        <!doctype html>
-        <html>
-          <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <script src="https://cdn.tailwindcss.com"></script>
-            <style>
-              body { 
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-                margin: 0;
-                padding: 0;
-                min-height: 100vh;
-              }
-            </style>
-          </head>
-          <body class="bg-white">
-            ${instanceSpecificHtml}
-          </body>
-        </html>
-      `;
-      return (
-        <div className={cn('w-full min-h-screen', className)}>
-          <iframe
-            srcDoc={iframeContent}
-            title={`Generated Page: ${moduleName}`}
-            className="w-full h-screen border-0"
-            sandbox="allow-same-origin allow-scripts"
-            loading="lazy"
-          />
-        </div>
-      );
-    };
-  } catch (e) {
-    console.log(e);
-    return function ErrorComponent() {
-      return <div>Error rendering generated page component</div>;
-    };
-  }
+  return function GeneratedPageComponent({ data, className }: { data: unknown; className?: string }) {
+    return (
+      <div className={cn('w-full min-h-screen', className)}>
+        <DynamicRenderer codeString={code} data={data} />
+      </div>
+    );
+  };
 }
 
 export default MagicUIPage; 

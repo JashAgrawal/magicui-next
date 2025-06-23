@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "dev": "next dev --turbopack",
-    "build":"next build",
+    "build": "next build",
     "build:package": "tsup",
     "start": "next start",
     "lint": "next lint"
@@ -33,23 +33,27 @@
     "url": "https://github.com/JashAgrawal/magicui-next/issues"
   },
   "dependencies": {
+    "@babel/standalone": "^7.27.6",
     "@google/genai": "^1.0.1",
     "@radix-ui/react-slot": "^1.2.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.511.0",
+    "markdown-to-txt": "^2.0.1",
     "next": "15.1.8",
+    "openai": "^4.52.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-jsx-parser": "^2.4.0",
     "tailwind-merge": "^3.3.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
-    "zustand": "^5.0.5",
-    "openai": "^4.52.7"
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/babel__standalone": "^7.1.9",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
