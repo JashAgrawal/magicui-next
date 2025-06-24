@@ -2,15 +2,32 @@
 
 import React, { useEffect, useState } from 'react';
 import * as Babel from '@babel/standalone';
+import IsolatedRenderer from './iframeRenderer';
 
 interface DynamicRendererProps {
   codeString: string;
   data: any;
+  isFullPage?: boolean;
+  aiProps?: Record<string, any>; // Additional props for AI (function descriptors, etc)
 }
 
-const DynamicRenderer: React.FC<DynamicRendererProps> = ({ codeString, data }) => {
-  const [Component, setComponent] = useState<React.FC<{ data: any }> | null>(null);
+const DynamicRenderer: React.FC<DynamicRendererProps> = ({ codeString, data, isFullPage = false, aiProps = {} }) => {
+  const [Component, setComponent] = useState<React.FC<{ data: any; [key: string]: any }> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [localData, setLocalData] = useState<any>(data);
+
+  // Prepare props to inject: for each aiProp, pass both the function and the descriptor
+  const injectedProps: Record<string, any> = {};
+  Object.entries(aiProps).forEach(([key, value]) => {
+    if (value && typeof value === 'object' && 'func' in value) {
+      injectedProps[key] = value.func;
+      injectedProps[`${key}Descriptor`] = { ...value, func: undefined };
+    } else {
+      injectedProps[key] = value;
+    }
+  });
+  // Also provide setData so AI can update state if it wants
+  injectedProps.setData = setLocalData;
 
   useEffect(() => {
     try {
@@ -41,10 +58,20 @@ const DynamicRenderer: React.FC<DynamicRendererProps> = ({ codeString, data }) =
     }
   }, [codeString]);
 
+  useEffect(() => {
+    setLocalData(data);
+  }, [data]);
+
   if (error) return <div className="text-red-500 p-4">Error: {error}</div>;
   if (!Component) return <div className="p-4">Loading...</div>;
 
-  return <Component data={data} />;
+  return (
+    <IsolatedRenderer className={isFullPage ? "h-screen" : ""}>
+      {/* Pass localData as data, plus all injectedProps (functions, descriptors, setData) */}
+      <Component data={localData} {...injectedProps} />
+    </IsolatedRenderer>
+  );
+  // return <Component data={data}/>
 };
 
 export default DynamicRenderer;

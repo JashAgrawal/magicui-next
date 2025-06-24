@@ -1,7 +1,6 @@
 "use client"
 import { MagicUIProvider } from '@/contexts/MagicUIContext'
 import React from 'react'
-import { description } from '@/nLib/cons'
 import { MagicUIPage } from '@/components/magic-ui'
 
 const page = () => {
@@ -10,7 +9,7 @@ const page = () => {
       <MagicUIPage
         id='landing-pageee'
         moduleName="LandingPage"
-        description={description}
+        description={"landing page"}
         data={{}}
         className='w-full h-screen'
       />

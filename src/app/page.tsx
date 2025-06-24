@@ -274,6 +274,18 @@ export default function EmeraldShowcasePage() {
                         description={ex.description}
                         data={ex.data}
                         className="w-full"
+                        {...(ex.id === "showcase-task-list"
+                          ? {
+                              // Pass an event descriptor for testing AI event handler
+                              aiProps: {
+                                onTaskComplete: {
+                                  func: (task:string)=>{console.log(task); alert("ss")},
+                                  description: "Alert when a task is completed",
+                                  params: ["task"],
+                                },
+                              },
+                            }
+                          : {})}
                       />
                     </div>
                   </ExampleTabs>
@@ -318,7 +330,7 @@ export default function EmeraldShowcasePage() {
                         "A beautiful eco-friendly landing page for a sustainable SaaS product. Use modern green design, hero section, and environmental call to action."
                       }
                       data={{}}
-                      className="w-full"
+                      // className="w-full"
                     />
                   </div>
                 </div>

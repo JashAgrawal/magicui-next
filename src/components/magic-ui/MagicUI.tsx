@@ -7,7 +7,7 @@ import { useMagicUIActions, useModule } from '@/nLib/magic-ui-store';
 import { MagicUIErrorBoundary } from './MagicUIErrorBoundary';
 import { RegenerateButton } from './RegenerateButton';
 import { LoadingOverlay } from './LoadingSpinner';
-import type { MagicUIProps, UIGenerationRequest, UIGenerationResponse } from '@/types/magic-ui';
+import type { MagicUIProps, UIGenerationRequestClient, UIGenerationResponse } from '@/types/magic-ui';
 import DynamicRenderer from './dynamic-renderer';
 
 export function MagicUI({
@@ -17,8 +17,9 @@ export function MagicUI({
   data,
   versionNumber,
   className,
-  aiConfig
-}: MagicUIProps) {
+  aiConfig,
+  aiProps
+}: MagicUIProps & { aiProps?: Record<string, any> }) {
   if (!id || typeof id !== 'string' || id.trim() === '') {
     throw new Error('MagicUI: The "id" prop is required and must be a non-empty string.');
   }
@@ -48,7 +49,7 @@ export function MagicUI({
     });
     setComponentError(null);
 
-    const request: UIGenerationRequest & { apiKey?: string } = {
+    const request: UIGenerationRequestClient & { apiKey?: string } = {
       id,
       moduleName,
       description,
@@ -58,6 +59,7 @@ export function MagicUI({
       versionNumber: forceRegenerate ? undefined : versionNumber,
       forceRegenerate: forceRegenerate,
       aiConfig: aiConfig,
+      ...(aiProps ? { aiProps } : {}),
     };
 
     let result: UIGenerationResponse & { source?: string };
@@ -118,6 +120,7 @@ export function MagicUI({
     versionNumber,
     actions,
     aiConfig,
+    aiProps,
   ]);
 
   const handleRegenerate = React.useCallback(() => {
@@ -159,10 +162,14 @@ export function MagicUI({
       <MagicUIErrorBoundary>
         <LoadingOverlay isLoading={isGenerating}>
           {generatedComponent ? (
-            React.createElement(generatedComponent, {
-              data: data,
-              className: 'magic-ui-generated-component'
-            })
+            React.createElement(
+              generatedComponent,
+              {
+                data: data,
+                className: 'magic-ui-generated-component',
+                ...(typeof generatedComponent === 'function' && generatedComponent.length > 0 ? { aiProps } : {})
+              }
+            )
           ) : (
             <div className="p-8 border border-gray-200 rounded-lg bg-gray-50 text-center">
               <p className="text-gray-600">Generating UI component...</p>
@@ -182,17 +189,18 @@ export function MagicUI({
 
 /**
  * Create a React component wrapper that renders AI-generated JSX string in an iframe.
+ * Accepts aiProps for function descriptors and other AI-driven props.
  */
 function createComponentFromCode(jsxCodeString: string, moduleName: string): React.ComponentType<any> {
-  return function GeneratedComponentWrapper({ data: instanceData, className }: any) {
+  return function GeneratedComponentWrapper({ data: instanceData, className, aiProps }: any) {
     return (
       <div className={cn('w-full h-full', className)}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-medium text-gray-700">{moduleName}</h3>
           <span className="text-xs text-gray-400">JSX Preview</span>
         </div>
-        <div className="relative border rounded-lg overflow-hidden bg-white shadow-sm">
-          <DynamicRenderer codeString={jsxCodeString} data={instanceData} />
+        <div className="relative border rounded-lg overflow-hidden bg-white shadow-sm h-full min-h-[300px]">
+            <DynamicRenderer codeString={jsxCodeString} data={instanceData} aiProps={aiProps} />
         </div>
         <div className="mt-2 text-xs text-gray-500">
           <p>Preview of AI-generated React (JSX) component.</p>

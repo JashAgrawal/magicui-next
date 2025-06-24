@@ -17,8 +17,9 @@ export function MagicUIPage({
   data, 
   versionNumber,
   className,
-  apiKey
-}: MagicUIProps & { apiKey?: string }) {
+  apiKey,
+  aiProps
+}: MagicUIProps & { apiKey?: string; aiProps?: Record<string, any> }) {
   if (!id || typeof id !== 'string' || id.trim() === '') {
     throw new Error('MagicUIPage: The "id" prop is required and must be a non-empty string.');
   }
@@ -30,7 +31,7 @@ export function MagicUIPage({
   } = useModule(moduleName);
   const actions = useMagicUIActions();
   
-  const [generatedComponent, setGeneratedComponent] = useState<React.ComponentType<{ data: unknown; className?: string }> | null>(null);
+  const [generatedComponent, setGeneratedComponent] = useState<React.ComponentType<{ data: unknown; className?: string; aiProps?: Record<string, any> }> | null>(null);
   const [componentError, setComponentError] = useState<string | null>(null);
   
   // geminiClient is no longer directly used here for generation.
@@ -60,6 +61,7 @@ export function MagicUIPage({
       isFullPage: true,
       forceRegenerate: forceRegenerate,
       ...(apiKey ? { apiKey } : {}),
+      ...(aiProps ? { aiProps } : {}),
     };
 
     let result: UIGenerationResponse & { source?: string };
@@ -85,7 +87,7 @@ export function MagicUIPage({
     }
 
     if (result.success && result.code) {
-      const component = createComponentFromCode(result.code, moduleName);
+      const component = createComponentFromCode(result.code);
       setGeneratedComponent(() => component);
       actions.updateModuleState(moduleName, { 
         isGenerating: false,
@@ -121,6 +123,7 @@ export function MagicUIPage({
     versionNumber,
     actions,
     apiKey,
+    aiProps,
     // geminiClient // Removed
   ]);
 
@@ -164,7 +167,8 @@ export function MagicUIPage({
           {generatedComponent ? (
             React.createElement(generatedComponent, {
               data: data,
-              className: 'magic-ui-generated-page'
+              className: 'magic-ui-generated-page',
+              aiProps
             })
           ) : (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -183,11 +187,11 @@ export function MagicUIPage({
   );
 }
 
-function createComponentFromCode(code: string, moduleName: string): React.ComponentType<{ data: unknown; className?: string }> {
-  return function GeneratedPageComponent({ data, className }: { data: unknown; className?: string }) {
+function createComponentFromCode(code: string): React.ComponentType<{ data: unknown; className?: string; aiProps?: Record<string, any> }> {
+  return function GeneratedPageComponent({ data, className, aiProps }: { data: unknown; className?: string; aiProps?: Record<string, any> }) {
     return (
-      <div className={cn('w-full min-h-screen', className)}>
-        <DynamicRenderer codeString={code} data={data} />
+      <div className={cn('w-full h-full', className)}>
+          <DynamicRenderer codeString={code} data={data} isFullPage aiProps={aiProps} />
       </div>
     );
   };

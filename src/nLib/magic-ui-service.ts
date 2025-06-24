@@ -291,24 +291,22 @@ import {
   writeCache,
   CacheEntry,
 } from "./cache-file-utils";
-import markdownToTxt from 'markdown-to-txt';
 import {
   UIGenerationRequest,
   UIGenerationResponse,
-  AiProviderConfig, // Added AiProviderConfig
-  OpenAIConfig, // For specific provider features if needed
+  OpenAIConfig,
+  sysAiConfig,
 } from "@/types/magic-ui";
 import { ORIGINAL_SYSTEM_INSTRUCTION } from "./geminiUiCreator"; // This will be updated later for JSX
 import { getAiClient } from "./aiSdkAdapter"; // Import the new adapter
-import { ResponseCreateParamsNonStreaming } from "openai/resources/responses/responses.mjs";
 import { ChatCompletionCreateParamsNonStreaming } from "openai/resources.mjs";
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 function generateCacheKey(request: UIGenerationRequest): string {
   // Cache key should now include AI provider and model for uniqueness
-  const provider = request.aiConfig?.provider || 'default_provider';
-  const model = request.aiConfig?.model || 'default_model';
+  const model = request.aiConfig?.model;
+  const provider = request.aiConfig?.provider;
 
   if (request.id && typeof request.id === "string" && request.id.trim() !== "") {
     // Include provider and model in ID-based cache key
@@ -322,21 +320,10 @@ function generateCacheKey(request: UIGenerationRequest): string {
   return `${moduleName}:${versionNumber || "latest"}:${themeString}:${dataString}:${projectPrd}-provider:${provider}-model:${model}`;
 }
 
-function extractJSXFunctionCode(generatedText: string): string | null {
-  // First, extract the code block content if it exists
-  const codeBlockMatch = generatedText.match(/```(?:html|tsx|jsx|js|javascript|typescript)?\s*([\s\S]*?)\s*```/i);
-  const codeContent = codeBlockMatch ? codeBlockMatch[1] : generatedText;
-
-  // Then, match the function that starts with `({ data }) => {` or similar
-  const functionMatch = codeContent.match(/\(?\{\s*data\s*\}\)?\s*=>\s*\{[\s\S]*?\}/);
-
-  return functionMatch ? functionMatch[0] : null;
-}
-
 
 async function generateWithAI(
   request: UIGenerationRequest,
-  aiConfig: AiProviderConfig, // Use the new AiProviderConfig
+  aiConfig: sysAiConfig, // Use the new AiProviderConfig
 ): Promise<Omit<UIGenerationResponse, "success">> {
   if (!aiConfig || !aiConfig.apiKey) {
     return {
@@ -353,13 +340,14 @@ async function generateWithAI(
       Module Name: ${request.moduleName}
       Description: ${request.description}
       Data: ${JSON.stringify(request.data, null, 2)}
+      ${request.aiProps ? `AI Props (event/function descriptors): ${JSON.stringify(request.aiProps, null, 2)}` : ''}
       ID: ${request.id || "N/A"}
       ${request.projectPrd ? `Project PRD: ${request.projectPrd}` : ""}
       ${request.theme ? `Theme: ${typeof request.theme === "string" ? request.theme : JSON.stringify(request.theme, null, 2)}` : ""}
       ${request.isFullPage ? "Type: Full Page UI" : "Type: UI Component"}
 
       Please generate the React JSX component code as a JavaScript string, based on these details and the system instructions.
-      The component should expect a 'data' prop.
+      The component should expect a 'data' prop and any additional event/function descriptor props.
       If the data is an array, use .map() to render items, ensuring unique keys.
       For images, use the JSX onError attribute for fallbacks as specified in the system instructions.
       The output should be ONLY the component code string itself.
@@ -415,7 +403,7 @@ async function generateWithAI(
 
 export async function generateUIComponent(
   generationRequest: UIGenerationRequest,
-  aiConfig: AiProviderConfig, // Expect AiProviderConfig
+  aiConfig: sysAiConfig, // Expect AiProviderConfig
 ): Promise<UIGenerationResponse> {
   if (
     !generationRequest ||
