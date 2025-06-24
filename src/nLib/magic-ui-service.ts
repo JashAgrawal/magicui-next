@@ -285,7 +285,7 @@ export const magicUIService = new MagicUIService();
 export default magicUIService;
 */
 
-import { GoogleGenAI } from "@google/genai";
+// import { GoogleGenAI } from "@google/genai"; // No longer directly used
 import {
   readCache,
   writeCache,
@@ -294,74 +294,108 @@ import {
 import {
   UIGenerationRequest,
   UIGenerationResponse,
+  OpenAIConfig,
+  sysAiConfig,
 } from "@/types/magic-ui";
-import { ORIGINAL_SYSTEM_INSTRUCTION } from "./geminiUiCreator";
+import { ORIGINAL_SYSTEM_INSTRUCTION } from "./geminiUiCreator"; // This will be updated later for JSX
+import { getAiClient } from "./aiSdkAdapter"; // Import the new adapter
+import { ChatCompletionCreateParamsNonStreaming } from "openai/resources.mjs";
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 function generateCacheKey(request: UIGenerationRequest): string {
+  // Cache key should now include AI provider and model for uniqueness
+  const model = request.aiConfig?.model;
+  const provider = request.aiConfig?.provider;
+
   if (request.id && typeof request.id === "string" && request.id.trim() !== "") {
-    return `magicui-id:${request.id}`;
+    // Include provider and model in ID-based cache key
+    return `magicui-id:${request.id}-provider:${provider}-model:${model}`;
   }
+
   const { moduleName, versionNumber, theme, data, projectPrd } = request;
   const themeString = typeof theme === "string" ? theme : JSON.stringify(theme);
-  const dataString = JSON.stringify(data);
-  return `${moduleName}:${versionNumber || "latest"}:${themeString}:${dataString}:${projectPrd}`;
+  const dataString = JSON.stringify(data); // Consider if data structure changes affect cache significantly
+
+  return `${moduleName}:${versionNumber || "latest"}:${themeString}:${dataString}:${projectPrd}-provider:${provider}-model:${model}`;
 }
+
 
 async function generateWithAI(
   request: UIGenerationRequest,
-  apiKey: string,
+  aiConfig: sysAiConfig, // Use the new AiProviderConfig
 ): Promise<Omit<UIGenerationResponse, "success">> {
-  if (!apiKey) {
+  if (!aiConfig || !aiConfig.apiKey) {
     return {
-      error: "AI service is not configured (API key missing).",
+      error: "AI service is not configured (API key missing in aiConfig).",
       version: request.versionNumber || "1.0.0",
     };
   }
 
   try {
-    const genAI = new GoogleGenAI({ apiKey });
-    const chatInstance = genAI.chats.create({
-      model: "gemini-2.5-flash-lite-preview-06-17",
-      config: {
-        systemInstruction: ORIGINAL_SYSTEM_INSTRUCTION,
-        temperature: 2,
-      },
-    });
+    const aiClient = getAiClient(aiConfig); // Get client using the adapter
 
-    const prompt = `
+    // Construct the user prompt (this will evolve for JSX)
+    const userPrompt = `
       Module Name: ${request.moduleName}
       Description: ${request.description}
       Data: ${JSON.stringify(request.data, null, 2)}
+      ${request.aiProps ? `AI Props (event/function descriptors): ${JSON.stringify(request.aiProps, null, 2)}` : ''}
       ID: ${request.id || "N/A"}
       ${request.projectPrd ? `Project PRD: ${request.projectPrd}` : ""}
       ${request.theme ? `Theme: ${typeof request.theme === "string" ? request.theme : JSON.stringify(request.theme, null, 2)}` : ""}
       ${request.isFullPage ? "Type: Full Page UI" : "Type: UI Component"}
 
-      Please generate the HTML/Tailwind code based on these details and the system instructions.
-      Remember to use {{placeholder}} syntax for dynamic data points as previously instructed.
-      For images, ensure they have onerror fallbacks to https://placehold.co/.
+      Please generate the React JSX component code as a JavaScript string, based on these details and the system instructions.
+      The component should expect a 'data' prop and any additional event/function descriptor props.
+      If the data is an array, use .map() to render items, ensuring unique keys.
+      For images, use the JSX onError attribute for fallbacks as specified in the system instructions.
+      The output should be ONLY the component code string itself.
     `;
 
-    const result = await chatInstance.sendMessage({ message: [{ text: prompt }] });
-    const text = result.text;
 
-    if (!text) {
+
+    // Specific logic for OpenAI
+      const openaiParams: ChatCompletionCreateParamsNonStreaming = { // Use 'any' for flexibility or define a more specific type
+        model: aiConfig.model || 'gemini-2.5-flash', // Default model from adapter can be overridden
+        // instructions:ORIGINAL_SYSTEM_INSTRUCTION,
+        messages: [
+          { role: "system", content: ORIGINAL_SYSTEM_INSTRUCTION }, // System prompt
+          { role: "user", content: userPrompt }, // User prompt
+        ],
+        temperature: aiConfig.temperature ?? 1, // Use provided or default
+        // max_tokens: aiConfig.maxOutputTokens ?? 4000, // Use provided or default
+      };
+      if ((aiConfig as OpenAIConfig).topP) {
+        openaiParams.top_p = (aiConfig as OpenAIConfig).topP;
+      }
+
+
+      const response = await aiClient.chat.completions.create(openaiParams);
+      const generatedText = response.choices[0].message.content;
+      
+
+    if (!generatedText) {
       throw new Error("AI returned an empty response.");
     }
-
-    const codeMatch = text.match(/```(?:html|tsx|jsx|js)?\s*([\s\S]*?)\s*```/);
-    const code = codeMatch ? codeMatch[1].trim() : text.trim();
+    let code = '';
+    // Code extraction logic (will need adjustment if AI directly returns code without markdown)
+    if(generatedText.startsWith("`")){
+      const rb = generatedText.indexOf("(");
+      const lb = generatedText.lastIndexOf("}");
+      code = generatedText.substring(rb,lb+1) 
+    }
 
     return {
       code,
-      version: new Date().toISOString(),
+      version: new Date().toISOString(), // Or a version from AI if available
     };
   } catch (error: unknown) {
     console.error("Error generating UI with AI:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate UI with AI.";
+    // Check for specific OpenAI errors if needed, e.g., error.response.data
     return {
-      error: error instanceof Error ? error.message : "Failed to generate UI with AI.",
+      error: errorMessage,
       version: request.versionNumber || "1.0.0",
     };
   }
@@ -369,7 +403,7 @@ async function generateWithAI(
 
 export async function generateUIComponent(
   generationRequest: UIGenerationRequest,
-  options: { apiKey: string },
+  aiConfig: sysAiConfig, // Expect AiProviderConfig
 ): Promise<UIGenerationResponse> {
   if (
     !generationRequest ||
@@ -383,16 +417,26 @@ export async function generateUIComponent(
     };
   }
 
-  if (!options.apiKey) {
-    console.error("Attempted to generate UI without API key.");
+  // aiConfig is now a top-level param, validation for apiKey is inside generateWithAI
+  if (!aiConfig || !aiConfig.apiKey) {
+    console.error("Attempted to generate UI without API key in aiConfig.");
     return {
       success: false,
-      error: "AI service is not configured.",
+      error: "AI service is not configured (API key missing in aiConfig).",
       version: generationRequest.versionNumber || "1.0.0",
     };
   }
+   // The UIGenerationRequest itself also contains aiConfig, ensure consistency or pick one source
+   // For now, we assume the aiConfig passed as a direct argument is the source of truth for this call.
+   // And the UIGenerationRequest.aiConfig is for caching or other metadata.
+   // Update the request's aiConfig if it's not already set, for cache key generation.
+   if (!generationRequest.aiConfig) {
+    generationRequest.aiConfig = aiConfig;
+   }
+
 
   const cache = await readCache();
+  // Pass the full generationRequest (which includes aiConfig) to generateCacheKey
   const key = generateCacheKey(generationRequest);
   const cachedEntry = cache.get(key);
 
@@ -408,7 +452,8 @@ export async function generateUIComponent(
     };
   }
 
-  const aiResult = await generateWithAI(generationRequest, options.apiKey);
+  // Pass the aiConfig to generateWithAI
+  const aiResult = await generateWithAI(generationRequest, aiConfig);
 
   if (aiResult.code) {
     const newEntry: CacheEntry = {

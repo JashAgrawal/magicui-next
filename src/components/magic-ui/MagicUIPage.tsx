@@ -8,6 +8,7 @@ import { MagicUIErrorBoundary } from './MagicUIErrorBoundary';
 import { RegenerateButton } from './RegenerateButton';
 import { LoadingOverlay } from './LoadingSpinner';
 import type { MagicUIProps, UIGenerationRequest, UIGenerationResponse } from '@/types/magic-ui';
+import DynamicRenderer from './dynamic-renderer';
 
 export function MagicUIPage({ 
   id,
@@ -16,8 +17,9 @@ export function MagicUIPage({
   data, 
   versionNumber,
   className,
-  apiKey
-}: MagicUIProps & { apiKey?: string }) {
+  apiKey,
+  aiProps
+}: MagicUIProps & { apiKey?: string; aiProps?: Record<string, any> }) {
   if (!id || typeof id !== 'string' || id.trim() === '') {
     throw new Error('MagicUIPage: The "id" prop is required and must be a non-empty string.');
   }
@@ -29,7 +31,7 @@ export function MagicUIPage({
   } = useModule(moduleName);
   const actions = useMagicUIActions();
   
-  const [generatedComponent, setGeneratedComponent] = useState<React.ComponentType<{ data: unknown; className?: string }> | null>(null);
+  const [generatedComponent, setGeneratedComponent] = useState<React.ComponentType<{ data: unknown; className?: string; aiProps?: Record<string, any> }> | null>(null);
   const [componentError, setComponentError] = useState<string | null>(null);
   
   // geminiClient is no longer directly used here for generation.
@@ -59,6 +61,7 @@ export function MagicUIPage({
       isFullPage: true,
       forceRegenerate: forceRegenerate,
       ...(apiKey ? { apiKey } : {}),
+      ...(aiProps ? { aiProps } : {}),
     };
 
     let result: UIGenerationResponse & { source?: string };
@@ -84,7 +87,7 @@ export function MagicUIPage({
     }
 
     if (result.success && result.code) {
-      const component = createComponentFromCode(result.code, moduleName);
+      const component = createComponentFromCode(result.code);
       setGeneratedComponent(() => component);
       actions.updateModuleState(moduleName, { 
         isGenerating: false,
@@ -120,6 +123,7 @@ export function MagicUIPage({
     versionNumber,
     actions,
     apiKey,
+    aiProps,
     // geminiClient // Removed
   ]);
 
@@ -163,7 +167,8 @@ export function MagicUIPage({
           {generatedComponent ? (
             React.createElement(generatedComponent, {
               data: data,
-              className: 'magic-ui-generated-page'
+              className: 'magic-ui-generated-page',
+              aiProps
             })
           ) : (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -182,76 +187,14 @@ export function MagicUIPage({
   );
 }
 
-function createComponentFromCode(code: string, moduleName: string): React.ComponentType<{ data: unknown; className?: string }> {
-  try {
-    return function GeneratedPageComponent({ data, className }: { data: unknown; className?: string }) {
-      let instanceSpecificHtml = code;
-      if (Array.isArray(data)) {
-        let aggregatedHtml = '';
-        for (const item of data) {
-          let itemHtml = code;
-          if (item && typeof item === 'object') {
-            for (const key in item) {
-              if (Object.prototype.hasOwnProperty.call(item, key)) {
-                const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-                const value = String(item[key] !== null && item[key] !== undefined ? item[key] : '');
-                itemHtml = itemHtml.replace(placeholder, value);
-              }
-            }
-          }
-          aggregatedHtml += itemHtml;
-        }
-        instanceSpecificHtml = aggregatedHtml;
-      } else if (data && typeof data === 'object') {
-        for (const key in data) {
-          if (Object.prototype.hasOwnProperty.call(data, key)) {
-            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-            const value = String((data as Record<string, unknown>)[key] !== null && (data as Record<string, unknown>)[key] !== undefined ? (data as Record<string, unknown>)[key] : '');
-            instanceSpecificHtml = instanceSpecificHtml.replace(placeholder, value);
-          }
-        }
-      }
-      // Remove unreplaced placeholders
-      instanceSpecificHtml = instanceSpecificHtml.replace(/{{\s*[^}]+\s*}}/g, '');
-      const iframeContent = `
-        <!doctype html>
-        <html>
-          <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <script src="https://cdn.tailwindcss.com"></script>
-            <style>
-              body { 
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-                margin: 0;
-                padding: 0;
-                min-height: 100vh;
-              }
-            </style>
-          </head>
-          <body class="bg-white">
-            ${instanceSpecificHtml}
-          </body>
-        </html>
-      `;
-      return (
-        <div className={cn('w-full min-h-screen', className)}>
-          <iframe
-            srcDoc={iframeContent}
-            title={`Generated Page: ${moduleName}`}
-            className="w-full h-screen border-0"
-            sandbox="allow-same-origin allow-scripts"
-            loading="lazy"
-          />
-        </div>
-      );
-    };
-  } catch (e) {
-    console.log(e);
-    return function ErrorComponent() {
-      return <div>Error rendering generated page component</div>;
-    };
-  }
+function createComponentFromCode(code: string): React.ComponentType<{ data: unknown; className?: string; aiProps?: Record<string, any> }> {
+  return function GeneratedPageComponent({ data, className, aiProps }: { data: unknown; className?: string; aiProps?: Record<string, any> }) {
+    return (
+      <div className={cn('w-full h-full', className)}>
+          <DynamicRenderer codeString={code} data={data} isFullPage aiProps={aiProps} />
+      </div>
+    );
+  };
 }
 
 export default MagicUIPage; 
