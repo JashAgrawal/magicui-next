@@ -1,6 +1,6 @@
 {
   "name": "magicui-next",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "main": "./dist/client.js",
   "types": "./dist/client.d.ts",
   "exports": {
